@@ -26,6 +26,7 @@ export default function Home() {
 
   const handlePlainLyricsChange = (e) => {
     setPlainLyrics(e.target.value);
+    setSyncedLyrics(e.target.value);
   };
 
   const handleSyncedLyricsChange = (e) => {
@@ -42,10 +43,14 @@ export default function Home() {
     });
   };
 
+  const handleSyncLine = (line, time) => {
+    setSyncData([...syncData, { line, time }]);
+  };
+
   const handleSync = () => {
     const audioElement = document.getElementById('audio');
     const currentTime = audioElement.currentTime;
-    setSyncData([...syncData, { line: currentLine, time: currentTime }]);
+    handleSyncLine(currentLine, currentTime);
     setCurrentLine(currentLine + 1);
   };
 
@@ -81,6 +86,7 @@ export default function Home() {
       duration,
       plainLyrics,
       syncedLyrics,
+      syncData,
     }, {
       headers: {
         'X-Publish-Token': publishToken,
@@ -119,12 +125,14 @@ export default function Home() {
         onChange={handlePlainLyricsChange}
         placeholder="Enter plain lyrics here"
         className="textarea"
+        rows="10"
       />
       <textarea
         value={syncedLyrics}
         onChange={handleSyncedLyricsChange}
         placeholder="Enter synced lyrics here"
         className="textarea"
+        rows="10"
       />
       <input type="file" accept="audio/*" onChange={handleAudioChange} className="input" />
       <audio id="audio" controls className="audio">
