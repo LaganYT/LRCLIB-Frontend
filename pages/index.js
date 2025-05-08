@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import '../styles/global.css';
 
 export default function Home() {
   const [trackName, setTrackName] = useState('');
@@ -24,10 +25,6 @@ export default function Home() {
     setAlbumName(e.target.value);
   };
 
-  const handleDurationChange = (e) => {
-    setDuration(e.target.value);
-  };
-
   const handlePlainLyricsChange = (e) => {
     setPlainLyrics(e.target.value);
   };
@@ -37,7 +34,13 @@ export default function Home() {
   };
 
   const handleAudioChange = (e) => {
-    setAudio(e.target.files[0]);
+    const file = e.target.files[0];
+    setAudio(file);
+
+    const audioElement = new Audio(URL.createObjectURL(file));
+    audioElement.addEventListener('loadedmetadata', () => {
+      setDuration(audioElement.duration);
+    });
   };
 
   const handleSync = () => {
@@ -65,6 +68,11 @@ export default function Home() {
   };
 
   const handleSubmit = async () => {
+    if (!audio) {
+      alert('Please upload an audio file.');
+      return;
+    }
+
     const publishToken = await obtainPublishToken();
 
     const response = await axios.post('https://lrclib.net/api/publish', {
@@ -84,48 +92,47 @@ export default function Home() {
   };
 
   return (
-    <div>
+    <div className="container">
       <h1>Publish Lyrics to LRCLib.net</h1>
       <input
         type="text"
         value={trackName}
         onChange={handleTrackNameChange}
         placeholder="Track Name"
+        className="input"
       />
       <input
         type="text"
         value={artistName}
         onChange={handleArtistNameChange}
         placeholder="Artist Name"
+        className="input"
       />
       <input
         type="text"
         value={albumName}
         onChange={handleAlbumNameChange}
         placeholder="Album Name"
-      />
-      <input
-        type="number"
-        value={duration}
-        onChange={handleDurationChange}
-        placeholder="Duration (seconds)"
+        className="input"
       />
       <textarea
         value={plainLyrics}
         onChange={handlePlainLyricsChange}
         placeholder="Enter plain lyrics here"
+        className="textarea"
       />
       <textarea
         value={syncedLyrics}
         onChange={handleSyncedLyricsChange}
         placeholder="Enter synced lyrics here"
+        className="textarea"
       />
-      <input type="file" accept="audio/*" onChange={handleAudioChange} />
-      <audio id="audio" controls>
+      <input type="file" accept="audio/*" onChange={handleAudioChange} className="input" />
+      <audio id="audio" controls className="audio">
         <source src={audio ? URL.createObjectURL(audio) : ''} type="audio/mpeg" />
       </audio>
-      <button onClick={handleSync}>Sync Line</button>
-      <button onClick={handleSubmit}>Publish</button>
+      <button onClick={handleSync} className="button">Sync Line</button>
+      <button onClick={handleSubmit} className="button">Publish</button>
     </div>
   );
 }
