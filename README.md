@@ -3,7 +3,7 @@ A website to publish lyrics to LRCLib.net
 
 ## Features
 - Input synced lyrics
-- Upload audio client-side
+- Upload audio client-side (required)
 - Sync lyrics line by line with the uploaded audio
 - Publish synced lyrics to lrclib.net
 
@@ -29,7 +29,7 @@ A website to publish lyrics to LRCLib.net
 
 5. Enter your synced lyrics in the provided textarea.
 
-6. Upload your audio file using the file input.
+6. Upload your audio file using the file input (required). The duration will be automatically obtained from the audio file.
 
 7. Use the "Sync Line" button to sync each line of lyrics with the audio.
 
@@ -69,7 +69,7 @@ To find a valid nonce, you must solve a proof-of-work cryptographic challenge us
 | trackName     | true     | string | Title of the track                   |
 | artistName    | true     | string | Track's artist name                  |
 | albumName     | true     | string | Track's album name                   |
-| duration      | true     | number | Track's duration                     |
+| duration      | true     | number | Track's duration (obtained from the audio file) |
 | plainLyrics   | true     | string | Plain lyrics for the track           |
 | syncedLyrics  | true     | string | Synchronized lyrics for the track    |
 
