@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import axios from 'axios';
-import '../styles/global.css';
 
 export default function Home() {
   const [trackName, setTrackName] = useState('');
