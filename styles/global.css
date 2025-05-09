@@ -291,18 +291,37 @@ a:hover {
   color: var(--primary-color);
 }
 
+.search-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.search-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: var(--primary-color);
+}
+
 .search-bar {
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: center;
+  width: 100%;
+  max-width: 400px;
 }
 
 .search-bar .input {
-  width: 300px;
+  flex: 1;
   padding: 10px;
   border: 1px solid var(--border-color);
   border-radius: 25px 0 0 25px;
   outline: none;
+  font-size: 16px;
 }
 
 .search-bar .search-button {
@@ -313,6 +332,9 @@ a:hover {
   color: white;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-bar .search-button:hover {
