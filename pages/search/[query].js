@@ -1,23 +1,31 @@
-import { useState } from 'react';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-export default function Search() {
-  const [query, setQuery] = useState('');
+export default function SearchResults() {
+  const router = useRouter();
+  const { query } = router.query;
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedSong, setSelectedSong] = useState(null);
   const [activeTab, setActiveTab] = useState('synced'); // 'synced' or 'plain'
 
-  const handleSearch = async () => {
+  useEffect(() => {
+    if (query) {
+      fetchResults(query);
+    }
+  }, [query]);
+
+  const fetchResults = async (searchQuery) => {
     try {
       setError('');
       setLoading(true);
-      const response = await axios.get(`https://lrclib.net/api/search?q=${query}`);
-      setResults(response.data || []); // Ensure results is an array
+      const response = await axios.get(`https://lrclib.net/api/search?q=${searchQuery}`);
+      setResults(response.data || []);
     } catch (err) {
       setError('Failed to fetch search results.');
-      setResults([]); // Reset results on error
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -39,17 +47,8 @@ export default function Search() {
 
   return (
     <div className="container">
-      <h1>Search Lyrics</h1>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Enter search query"
-        className="input"
-      />
-      <button onClick={handleSearch} className="button" disabled={loading}>
-        {loading ? 'Searching...' : 'Search'}
-      </button>
+      <h1>Search Results for "{query}"</h1>
+      {loading && <p>Loading...</p>}
       {error && <p className="error">{error}</p>}
       <ul className="results-list">
         {results.length > 0 ? (
