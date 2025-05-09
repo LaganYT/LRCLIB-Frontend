@@ -51,6 +51,7 @@ export default function Home() {
           {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
         </button>
       </div>
+      <button onClick={() => router.push('/publish')} className="button">Publish Lyrics</button>
     </div>
   );
 }
