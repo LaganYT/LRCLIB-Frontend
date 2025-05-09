@@ -12,7 +12,7 @@ export default function Search() {
       setError('');
       setLoading(true);
       const response = await axios.get(`https://lrclib.net/api/search?q=${query}`);
-      setResults(response.data.results || []); // Ensure results is an array
+      setResults(response.data || []); // Ensure results is an array
     } catch (err) {
       setError('Failed to fetch search results.');
       setResults([]); // Reset results on error
@@ -38,7 +38,10 @@ export default function Search() {
       <ul>
         {results.length > 0 ? (
           results.map((result) => (
-            <li key={result.id}>{result.title} by {result.artist}</li>
+            <li key={result.id}>
+              <strong>{result.name}</strong> by {result.artistName} <br />
+              <em>Album: {result.albumName}</em>
+            </li>
           ))
         ) : (
           !loading && <p>No results found.</p>
