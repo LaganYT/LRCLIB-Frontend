@@ -9,7 +9,7 @@ export default function View() {
   const handleView = async () => {
     try {
       setError('');
-      const response = await axios.get(`https://lrclib.net/api/lyrics/${id}`);
+      const response = await axios.get(`https://lrclib.net/api/get/${id}`);
       setLyrics(response.data);
     } catch (err) {
       setError('Failed to fetch lyrics.');

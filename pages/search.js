@@ -24,7 +24,7 @@ export default function Search() {
 
   const handleSongClick = async (id) => {
     try {
-      const response = await axios.get(`https://lrclib.net/api/lyrics/${id}`);
+      const response = await axios.get(`https://lrclib.net/api/get/${id}`);
       setSelectedSong(response.data);
     } catch (err) {
       setError('Failed to fetch song details.');
