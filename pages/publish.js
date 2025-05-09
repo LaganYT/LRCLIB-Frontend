@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import axios from 'axios';
-import crypto from 'crypto';
+import CryptoJS from 'crypto-js';
 
 export default function Publish() {
   const [trackName, setTrackName] = useState('');
@@ -42,7 +42,7 @@ export default function Publish() {
 
       let nonce = 0;
       while (true) {
-        const hash = crypto.createHash('sha256').update(prefix + nonce).digest('hex');
+        const hash = CryptoJS.SHA256(prefix + nonce).toString(CryptoJS.enc.Hex);
         if (hash <= target) break;
         nonce++;
       }
