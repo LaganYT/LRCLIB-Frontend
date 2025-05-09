@@ -2,6 +2,9 @@ import { useState } from 'react';
 import axios from 'axios';
 import crypto from 'crypto';
 
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+const API_BASE_URL = 'https://lrclib.net/api';
+
 export default function Publish() {
   const [trackName, setTrackName] = useState('');
   const [artistName, setArtistName] = useState('');
@@ -65,7 +68,7 @@ export default function Publish() {
 
   const obtainPublishToken = async () => {
     try {
-      const { data } = await axios.post('https://lrclib.net/api/request-challenge');
+      const { data } = await axios.post(`${CORS_PROXY}${API_BASE_URL}/request-challenge`);
       const { prefix, target } = data;
 
       let nonce = 0;
@@ -100,7 +103,7 @@ export default function Publish() {
       const publishToken = await obtainPublishToken();
 
       await axios.post(
-        'https://lrclib.net/api/publish',
+        `${CORS_PROXY}${API_BASE_URL}/publish`,
         {
           trackName,
           artistName,
