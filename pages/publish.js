@@ -112,6 +112,7 @@ export default function Publish() {
   return (
     <div className="container">
       <h1>Publish Lyrics</h1>
+      <p>Fill in the details below to publish your lyrics.</p>
       <input
         type="text"
         value={trackName}
