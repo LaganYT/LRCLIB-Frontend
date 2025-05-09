@@ -12,7 +12,8 @@
     "axios": "^0.21.1",
     "next": "15.3.2",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "crypto-js": "latest"
   },
   "devDependencies": {},
   "author": "Logan Latham",
