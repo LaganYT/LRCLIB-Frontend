@@ -118,7 +118,11 @@ export default function Publish() {
 
       setSuccess('Lyrics published successfully!');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to publish lyrics. Please try again.');
+      if (err.response?.status === 400 && err.response?.data?.name === 'IncorrectPublishTokenError') {
+        setError('The provided publish token is incorrect. Please try again.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to publish lyrics. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
