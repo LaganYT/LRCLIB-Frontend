@@ -39,12 +39,17 @@ export default function Publish() {
 
   const handleAudioChange = (e) => {
     const file = e.target.files[0];
-    setAudio(file);
+    if (file) {
+      setAudio(file);
 
-    const audioElement = new Audio(URL.createObjectURL(file));
-    audioElement.addEventListener('loadedmetadata', () => {
-      setDuration(audioElement.duration);
-    });
+      const audioElement = document.getElementById('audio');
+      const objectUrl = URL.createObjectURL(file);
+      audioElement.src = objectUrl;
+
+      audioElement.addEventListener('loadedmetadata', () => {
+        setDuration(audioElement.duration);
+      });
+    }
   };
 
   const handleSyncLine = (line, time) => {
@@ -159,9 +164,7 @@ export default function Publish() {
         rows="10"
       />
       <input type="file" accept="audio/*" onChange={handleAudioChange} className="input" />
-      <audio id="audio" controls className="audio">
-        <source src={audio ? URL.createObjectURL(audio) : ''} type="audio/mpeg" />
-      </audio>
+      <audio id="audio" controls className="audio"></audio>
       <button onClick={handleSync} className="button" disabled={loading}>
         {loading ? 'Syncing...' : 'Sync Line'}
       </button>
