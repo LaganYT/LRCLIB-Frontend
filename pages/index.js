@@ -40,18 +40,16 @@ export default function Home() {
         />
         <button onClick={handleSearch} className="search-button">🔍</button>
       </div>
+        <button onClick={toggleTheme} className="button">
+          {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+        </button>
+      <button onClick={() => router.push('/publish')} className="button">Publish Lyrics</button>
       <div className="links">
         <a href="https://lrclib.net/">Original Site</a>
         <a href="https://lrclib.net/docs">API Documentation</a>
         <a href="https://lrclib.net/db-dumps">Database Dumps</a>
         <a href="https://github.com/tranxuanthang/lrclib?tab=readme-ov-file#donation">Donation to creator</a>
       </div>
-      <div className="theme-toggle">
-        <button onClick={toggleTheme}>
-          {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
-        </button>
-      </div>
-      <button onClick={() => router.push('/publish')} className="button">Publish Lyrics</button>
     </div>
   );
 }
