@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import crypto from 'crypto';
 
 export default function Publish() {
   const [trackName, setTrackName] = useState('');
@@ -58,25 +59,31 @@ export default function Publish() {
   };
 
   const obtainPublishToken = async () => {
-    const challengeResponse = await axios.post('https://lrclib.net/api/request-challenge');
-    const { prefix, target } = challengeResponse.data;
+    try {
+      const { data } = await axios.post('https://lrclib.net/api/request-challenge');
+      const { prefix, target } = data;
 
-    // Solve the proof-of-work challenge (this is a simplified example)
-    let nonce = 0;
-    while (true) {
-      const hash = crypto.createHash('sha256').update(prefix + nonce).digest('hex');
-      if (hash.startsWith(target)) {
-        break;
+      let nonce = 0;
+      while (true) {
+        const hash = crypto.createHash('sha256').update(prefix + nonce).digest('hex');
+        if (hash <= target) break;
+        nonce++;
       }
-      nonce++;
-    }
 
-    return `${prefix}:${nonce}`;
+      return `${prefix}:${nonce}`;
+    } catch (err) {
+      throw new Error('Failed to obtain publish token.');
+    }
   };
 
   const handleSubmit = async () => {
-    if (!audio) {
-      setError('Please upload an audio file.');
+    if (!trackName || !artistName || !albumName || !duration) {
+      setError('All fields except lyrics are required.');
+      return;
+    }
+
+    if (!plainLyrics && !syncedLyrics) {
+      setError('At least one of plain lyrics or synced lyrics must be provided.');
       return;
     }
 
@@ -87,23 +94,26 @@ export default function Publish() {
     try {
       const publishToken = await obtainPublishToken();
 
-      const response = await axios.post('https://lrclib.net/api/publish', {
-        trackName,
-        artistName,
-        albumName,
-        duration,
-        plainLyrics,
-        syncedLyrics,
-        syncData,
-      }, {
-        headers: {
-          'X-Publish-Token': publishToken,
+      await axios.post(
+        'https://lrclib.net/api/publish',
+        {
+          trackName,
+          artistName,
+          albumName,
+          duration,
+          plainLyrics,
+          syncedLyrics,
         },
-      });
+        {
+          headers: {
+            'X-Publish-Token': publishToken,
+          },
+        }
+      );
 
       setSuccess('Lyrics published successfully!');
     } catch (err) {
-      setError('Failed to publish lyrics. Please try again.');
+      setError(err.response?.data?.message || 'Failed to publish lyrics. Please try again.');
     } finally {
       setLoading(false);
     }
