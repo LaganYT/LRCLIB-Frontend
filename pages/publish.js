@@ -52,7 +52,6 @@ export default function Publish() {
   };
 
   const publishLyrics = async (publishToken) => {
-    const userAgent = `LRCLIB-Frontend v1.0.0 (https://github.com/LaganYT/LRCLIB-Frontend)`;
     const apiEndpoint = 'https://lrclib.net/api/publish';
 
     const payload = {
@@ -68,7 +67,8 @@ export default function Publish() {
       const response = await axios.post(apiEndpoint, payload, {
         headers: {
           'X-Publish-Token': publishToken,
-          'User-Agent': userAgent,
+          'x-user-agent': 'LRCLIB-Frontend v1.0.0 (https://github.com/LaganYT/LRCLIB-Frontend)',
+          'Content-Type': 'application/json',
         },
         timeout: 10000,
       });
