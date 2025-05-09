@@ -52,7 +52,7 @@ export default function Publish() {
   };
 
   const publishLyrics = async (publishToken) => {
-    const userAgent = `LRCGET v1.0.0 (https://github.com/tranxuanthang/lrcget)`;
+    const userAgent = `LRCLIB-Frontend v1.0.0 (https://github.com/LaganYT/LRCLIB-Frontend)`;
     const apiEndpoint = 'https://lrclib.net/api/publish';
 
     const payload = {
