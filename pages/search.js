@@ -11,7 +11,7 @@ export default function Search() {
     try {
       setError('');
       setLoading(true);
-      const response = await axios.get(`https://lrclib.net/api/search?query=${query}`);
+      const response = await axios.get(`https://lrclib.net/api/search?q=${query}`);
       setResults(response.data.results || []); // Ensure results is an array
     } catch (err) {
       setError('Failed to fetch search results.');
