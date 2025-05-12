@@ -42,9 +42,6 @@ export default function Home() {
         />
         <button onClick={handleSearch} className="search-button">🔍</button>
       </div>
-        <button onClick={toggleTheme} className="button">
-          {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
-        </button>
       <button onClick={() => router.push('/publish')} className="button">Publish Lyrics</button>
       <div className="links">
         <a href="https://lrclib.net/">Original Site</a>
