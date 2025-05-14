@@ -79,7 +79,7 @@ export default function Publish() {
 
       let nonce = 0;
       while (true) {
-        const hash = CryptoJS.SHA256(prefix + nonce).toString(CryptoJS.enc.Hex);
+        const hash = CryptoJS.SHA256(`${prefix}:${nonce}`).toString(CryptoJS.enc.Hex); // Fixed hash format
         if (hash <= target) break;
         nonce++;
       }
@@ -94,9 +94,12 @@ export default function Publish() {
     const apiEndpoint = 'https://lrclib.net/api/publish';
 
     const payload = {
-      ...selectedSong,
+      trackName: selectedSong.trackName,
+      artistName: selectedSong.artistName,
+      albumName: selectedSong.albumName,
+      duration: selectedSong.duration,
       plainLyrics,
-      ...(syncedLyrics && { syncedLyrics }),
+      syncedLyrics: syncedLyrics || null, // Ensure syncedLyrics is optional
     };
 
     try {
@@ -117,11 +120,7 @@ export default function Publish() {
     } catch (err) {
       if (err.response) {
         const { status, data } = err.response;
-        if (status === 400 || status === 503 || status === 500) {
-          setError(`${data.error}: ${data.message}`);
-        } else {
-          setError('Unknown error occurred.');
-        }
+        setError(data.message || 'An error occurred.');
       } else {
         setError('Failed to publish lyrics. Please try again.');
       }
