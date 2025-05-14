@@ -32,6 +32,7 @@ export default function Home() {
       <button onClick={() => router.push('/publish')} className="button">Publish Lyrics</button>
       <div className="links">
         <a href="https://lrclib.net/">Original Site</a>
+        <a href="https://github.com/LaganYT/LRCLIB-Frontend">Source code</a>
         <a href="https://lrclib.net/docs">API Documentation</a>
         <a href="https://lrclib.net/db-dumps">Database Dumps</a>
         <a href="https://github.com/tranxuanthang/lrclib?tab=readme-ov-file#donation">Donation to creator</a>
