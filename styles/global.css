@@ -289,7 +289,7 @@ a:hover {
 
 .search-bar {
   display: flex;
-  align-items: center;
+  align-items: center; /* Center items vertically */
   justify-content: space-between;
   width: 100%;
   max-width: 600px;
@@ -313,7 +313,7 @@ a:hover {
   font-size: 16px;
   outline: none;
   width: 100%;
-  padding: 5px 0; /* Adjusted padding for alignment */
+  padding: 0; /* Remove extra padding for alignment */
 }
 
 .search-bar .input::placeholder {
