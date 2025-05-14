@@ -3,6 +3,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { FaSearch, FaMicrophone, FaCog } from 'react-icons/fa';
 
 export default function SearchResults() {
   const router = useRouter();
@@ -59,6 +60,7 @@ export default function SearchResults() {
       <div className="navbar">
         <button onClick={() => router.push('/')} className="button">Home</button>
         <div className="search-bar">
+          <FaSearch className="icon" />
           <input
             type="text"
             value={searchQuery}
@@ -66,7 +68,8 @@ export default function SearchResults() {
             placeholder="Search for lyrics..."
             className="input"
           />
-          <button onClick={handleSearch} className="search-button">🔍</button>
+          <FaMicrophone className="icon" />
+          <FaCog className="icon" />
         </div>
       </div>
       <h1>Search Results for "{query}"</h1>

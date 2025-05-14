@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { FaSearch, FaMicrophone, FaCog } from 'react-icons/fa';
 
 export default function Home() {
   const [theme, setTheme] = useState('dark');
@@ -33,6 +34,7 @@ export default function Home() {
         <h1>LRCLIB-Frontend</h1>
       </div>
       <div className="search-bar">
+        <FaSearch className="icon" />
         <input
           type="text"
           value={query}
@@ -40,7 +42,8 @@ export default function Home() {
           placeholder="Search for lyrics..."
           className="input"
         />
-        <button onClick={handleSearch} className="search-button">🔍</button>
+        <FaMicrophone className="icon" />
+        <FaCog className="icon" />
       </div>
       <button onClick={() => router.push('/publish')} className="button">Publish Lyrics</button>
       <div className="links">

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { FaSearch, FaMicrophone, FaCog } from 'react-icons/fa';
 
 export default function Search() {
   const [query, setQuery] = useState('');
@@ -17,6 +18,7 @@ export default function Search() {
     <div className="search-container">
       <h1 className="search-title">Search Lyrics</h1>
       <div className="search-bar">
+        <FaSearch className="icon" />
         <input
           type="text"
           value={query}
@@ -24,7 +26,8 @@ export default function Search() {
           placeholder="Enter search query"
           className="input"
         />
-        <button onClick={handleSearch} className="search-button">🔍</button>
+        <FaMicrophone className="icon" />
+        <FaCog className="icon" />
       </div>
     </div>
   );
