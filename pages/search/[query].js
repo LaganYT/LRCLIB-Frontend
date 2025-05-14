@@ -3,7 +3,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FaSearch, FaMicrophone, FaCog } from 'react-icons/fa';
+import { FaSearch } from 'react-icons/fa';
 
 export default function SearchResults() {
   const router = useRouter();

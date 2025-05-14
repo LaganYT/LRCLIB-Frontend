@@ -5,22 +5,8 @@ import { useRouter } from 'next/router';
 import { FaSearch, FaMicrophone, FaCog } from 'react-icons/fa';
 
 export default function Home() {
-  const [theme, setTheme] = useState('dark');
   const [query, setQuery] = useState('');
   const router = useRouter();
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
 
   const handleSearch = () => {
     if (query.trim()) {
