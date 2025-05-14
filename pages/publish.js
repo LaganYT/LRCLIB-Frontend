@@ -1,38 +1,75 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
 
+const CLIENT_ID = '28a7d1b1ca074829b305916a96032709'; // Replace with your Spotify Client ID
+const CLIENT_SECRET = 'fa4e00f57aa443b685e7909a4e5148b6'; // Replace with your Spotify Client Secret
+
 export default function Publish() {
-  const [trackName, setTrackName] = useState('');
-  const [artistName, setArtistName] = useState('');
-  const [albumName, setAlbumName] = useState('');
-  const [duration, setDuration] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedSong, setSelectedSong] = useState(null);
   const [plainLyrics, setPlainLyrics] = useState('');
   const [syncedLyrics, setSyncedLyrics] = useState('');
-  const [audio, setAudio] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [accessToken, setAccessToken] = useState('');
 
-  const handleTrackNameChange = (e) => setTrackName(e.target.value);
-  const handleArtistNameChange = (e) => setArtistName(e.target.value);
-  const handleAlbumNameChange = (e) => setAlbumName(e.target.value);
-  const handlePlainLyricsChange = (e) => setPlainLyrics(e.target.value);
-  const handleSyncedLyricsChange = (e) => setSyncedLyrics(e.target.value);
+  const handleSearchQueryChange = (e) => setSearchQuery(e.target.value);
 
-  const handleAudioChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setAudio(file);
-      const audioElement = document.getElementById('audio');
-      const objectUrl = URL.createObjectURL(file);
-      audioElement.src = objectUrl;
-      audioElement.addEventListener('loadedmetadata', () => {
-        setDuration(audioElement.duration);
-      });
+  useEffect(() => {
+    const fetchAccessToken = async () => {
+      try {
+        const tokenResponse = await axios.post(
+          'https://accounts.spotify.com/api/token',
+          new URLSearchParams({ grant_type: 'client_credentials' }),
+          {
+            headers: {
+              Authorization: `Basic ${btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          }
+        );
+        setAccessToken(tokenResponse.data.access_token);
+        setError('');
+      } catch (err) {
+        setError('Failed to generate access token. Please check your client ID and secret.');
+      }
+    };
+
+    fetchAccessToken();
+  }, []); // Run once when the component mounts
+
+  const searchSpotify = async () => {
+    if (!accessToken) {
+      setError('Access token is missing. Please try again.');
+      return;
     }
+    try {
+      const { data } = await axios.get(`https://api.spotify.com/v1/search`, {
+        params: { q: searchQuery, type: 'track', limit: 10 },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      setSearchResults(data.tracks.items);
+    } catch (err) {
+      setError('Failed to search Spotify. Please try again.');
+    }
+  };
+
+  const selectSong = (song) => {
+    setSelectedSong({
+      trackName: song.name,
+      artistName: song.artists.map((artist) => artist.name).join(', '),
+      albumName: song.album.name,
+      duration: Math.round(song.duration_ms / 1000),
+    });
+    setSearchResults([]);
+    setSearchQuery('');
   };
 
   const obtainPublishToken = async () => {
@@ -57,12 +94,9 @@ export default function Publish() {
     const apiEndpoint = 'https://lrclib.net/api/publish';
 
     const payload = {
-      trackName,
-      albumName,
-      artistName,
-      duration: Math.round(duration),
+      ...selectedSong,
       plainLyrics,
-      ...(syncedLyrics && { syncedLyrics }), // Include syncedLyrics only if provided
+      ...(syncedLyrics && { syncedLyrics }),
     };
 
     try {
@@ -95,8 +129,8 @@ export default function Publish() {
   };
 
   const handleSubmit = async () => {
-    if (!trackName || !artistName || !albumName || !duration) {
-      setError('All fields except lyrics are required.');
+    if (!selectedSong) {
+      setError('Please select a song from the search results.');
       return;
     }
 
@@ -122,44 +156,48 @@ export default function Publish() {
   return (
     <div className="container">
       <h1>Publish Lyrics</h1>
-      <p>Fill in the details below to publish your lyrics.</p>
+      <p>Search for a song on Spotify to autofill details.</p>
       <input
         type="text"
-        value={trackName}
-        onChange={handleTrackNameChange}
-        placeholder="Track Name"
+        value={searchQuery}
+        onChange={handleSearchQueryChange}
+        placeholder="Search for a song"
         className="input"
       />
-      <input
-        type="text"
-        value={artistName}
-        onChange={handleArtistNameChange}
-        placeholder="Artist Name"
-        className="input"
-      />
-      <input
-        type="text"
-        value={albumName}
-        onChange={handleAlbumNameChange}
-        placeholder="Album Name"
-        className="input"
-      />
+      <button onClick={searchSpotify} className="button">
+        Search
+      </button>
+      {searchResults.length > 0 && (
+        <ul className="search-results">
+          {searchResults.map((song) => (
+            <li key={song.id} onClick={() => selectSong(song)}>
+              {song.name} - {song.artists.map((artist) => artist.name).join(', ')}
+            </li>
+          ))}
+        </ul>
+      )}
+      {selectedSong && (
+        <div className="song-details">
+          <p><strong>Track:</strong> {selectedSong.trackName}</p>
+          <p><strong>Artist:</strong> {selectedSong.artistName}</p>
+          <p><strong>Album:</strong> {selectedSong.albumName}</p>
+          <p><strong>Duration:</strong> {selectedSong.duration} seconds</p>
+        </div>
+      )}
       <textarea
         value={plainLyrics}
-        onChange={handlePlainLyricsChange}
+        onChange={(e) => setPlainLyrics(e.target.value)}
         placeholder="Enter plain lyrics here"
         className="textarea"
         rows="10"
       />
       <textarea
         value={syncedLyrics}
-        onChange={handleSyncedLyricsChange}
+        onChange={(e) => setSyncedLyrics(e.target.value)}
         placeholder="Enter synced lyrics here"
         className="textarea"
         rows="10"
       />
-      <input type="file" accept="audio/*" onChange={handleAudioChange} className="input" />
-      <audio id="audio" controls className="audio"></audio>
       <button onClick={handleSubmit} className="button" disabled={loading}>
         {loading ? 'Publishing...' : 'Publish'}
       </button>
