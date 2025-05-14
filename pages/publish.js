@@ -62,7 +62,7 @@ export default function Publish() {
       artistName,
       duration: Math.round(duration),
       plainLyrics,
-      syncedLyrics,
+      ...(syncedLyrics && { syncedLyrics }), // Include syncedLyrics only if provided
     };
 
     try {
