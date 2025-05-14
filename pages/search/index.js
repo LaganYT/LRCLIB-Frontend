@@ -14,6 +14,12 @@ export default function Search() {
     }
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   return (
     <div className="search-container">
       <h1 className="search-title">Search Lyrics</h1>
@@ -23,6 +29,7 @@ export default function Search() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyPress={handleKeyPress}
           placeholder="Enter search query"
           className="input"
         />

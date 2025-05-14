@@ -42,8 +42,6 @@ export default function Home() {
           placeholder="Search for lyrics..."
           className="input"
         />
-        <FaMicrophone className="icon" />
-        <FaCog className="icon" />
       </div>
       <button onClick={() => router.push('/publish')} className="button">Publish Lyrics</button>
       <div className="links">

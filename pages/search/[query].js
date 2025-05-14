@@ -68,8 +68,6 @@ export default function SearchResults() {
             placeholder="Search for lyrics..."
             className="input"
           />
-          <FaMicrophone className="icon" />
-          <FaCog className="icon" />
         </div>
       </div>
       <h1>Search Results for "{query}"</h1>
