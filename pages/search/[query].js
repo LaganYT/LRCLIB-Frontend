@@ -16,10 +16,10 @@ export default function SearchResults() {
   const [searchQuery, setSearchQuery] = useState(query || '');
 
   useEffect(() => {
-    if (query) {
-      fetchResults(query);
+    if (searchQuery) {
+      fetchResults(searchQuery); // Use searchQuery instead of query
     }
-  }, [query]);
+  }, [searchQuery]); // Updated dependency
 
   const fetchResults = async (searchQuery) => {
     try {

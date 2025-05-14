@@ -25,6 +25,7 @@ export default function Home() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()} // Updated from onKeyPress
           placeholder="Search for lyrics..."
           className="input"
         />
