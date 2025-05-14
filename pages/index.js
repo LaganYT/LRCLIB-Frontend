@@ -30,9 +30,9 @@ export default function Home() {
           className="input"
         />
       </div>
-      <button onClick={() => router.push('/publish')} className="button">Publish Lyrics</button>
       <div className="links">
         <a href="https://lrclib.net/">Original Site</a>
+        <a href="/publish">Publish Lyrics</a>
         <a href="https://github.com/LaganYT/LRCLIB-Frontend">Source code</a>
         <a href="https://lrclib.net/docs">API Documentation</a>
         <a href="https://lrclib.net/db-dumps">Database Dumps</a>

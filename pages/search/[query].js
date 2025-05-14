@@ -86,7 +86,14 @@ export default function SearchResults() {
             </li>
           ))
         ) : (
-          !loading && <p>No results found.</p>
+          !loading && results.length === 0 && (
+            <div>
+              <p>No results found.</p>
+              <button className="button" onClick={() => router.push('/publish')}>
+                Publish Lyrics
+              </button>
+            </div>
+          )
         )}
       </ul>
       {selectedSong && (
