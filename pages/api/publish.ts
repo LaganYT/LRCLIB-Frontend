@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 import { createHash } from 'crypto';
 import { LRCLibChallengeResponse, LRCLibPublishPayload, ApiResponse } from '../../types';
+import https from 'https';
 
 export default async function handler(
   req: NextApiRequest,
@@ -30,23 +31,82 @@ export default async function handler(
         .filter((line) => !/^\s*\[(ti|ar|al|length)\s*:/i.test(line))
         .join('\n');
 
+    // Create a shared axios client with keep-alive and sensible defaults
+    const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
+    const client = axios.create({
+      baseURL: 'https://lrclib.net',
+      timeout: 45000,
+      httpsAgent,
+      headers: {
+        'User-Agent': 'LRCLIB-Frontend/1.0 (+https://github.com/LaganYT/LRCLIB-Frontend)'
+      }
+    });
+
+    const postWithRetry = async <T = any>(url: string, data?: any, extraConfig?: any): Promise<{ data: T; status: number; headers: any; }> => {
+      const maxAttempts = 3;
+      let lastErr: any;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const resp = await client.post<T>(url, data, { ...extraConfig });
+          return resp as any;
+        } catch (err: any) {
+          const code = err?.code;
+          const transient = !err.response && (code === 'ECONNRESET' || code === 'ETIMEDOUT' || code === 'EAI_AGAIN');
+          if (transient && attempt < maxAttempts) {
+            await new Promise((r) => setTimeout(r, 500 * attempt));
+            lastErr = err;
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw lastErr;
+    };
+
     // Step 1: Obtain publish token (challenge-response)
-    const challengeResponse = await axios.post<LRCLibChallengeResponse>(
-      'https://lrclib.net/api/request-challenge',
-      undefined,
-    );
-    const { prefix, target } = challengeResponse.data;
+    const solveChallenge = async (maxSolveMs: number): Promise<string | null> => {
+      const challengeResp = await postWithRetry<LRCLibChallengeResponse>(
+        '/api/request-challenge',
+        '',
+        { headers: { 'Content-Length': '0' } }
+      );
+      const { prefix, target } = challengeResp.data;
 
-    // Solve the challenge
-    let nonce = 0;
-    while (true) {
-      const hash = createHash('sha256').update(`${prefix}:${nonce}`).digest('hex');
-      // Docs: accept when SHA256(prefix:nonce) <= target
-      if (hash <= target) break;
-      nonce++;
+      const start = Date.now();
+      const targetBuf = Buffer.from(target, 'hex');
+      let nonceLocal = 0;
+      const chunkSize = 10000;
+      while (true) {
+        for (let i = 0; i < chunkSize; i++) {
+          const candidate = prefix + (nonceLocal++).toString();
+          const hashBuf = createHash('sha256').update(candidate).digest();
+          // Accept when SHA256(prefix + nonce) <= target (byte-wise)
+          if (hashBuf.compare(targetBuf) <= 0) {
+            return `${prefix}${nonceLocal - 1}`;
+          }
+        }
+        if (Date.now() - start > maxSolveMs) {
+          return null; // give up and try a new challenge
+        }
+        // yield to event loop to avoid starving the server
+        await new Promise((r) => setImmediate(r));
+      }
+    };
+
+    // Try solving multiple challenges with a per-attempt budget
+    const maxAttempts = 3;
+    const perAttemptMs = 15000; // 15s each, ~45s total budget
+    let publishToken: string | null = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const token = await solveChallenge(perAttemptMs);
+      if (token) {
+        publishToken = token;
+        break;
+      }
     }
-
-    const publishToken = `${prefix}:${nonce}`;
+    if (!publishToken) {
+      return res.status(503).json({ message: 'Failed to obtain publish token in time. Please try again.' });
+    }
 
     // Step 2: Publish lyrics to lrclib
     // Build payload following docs: omit empty lyrics fields; keep duration in seconds
@@ -69,10 +129,11 @@ export default async function handler(
       payload.syncedLyrics = '';
     }
 
-    const publishResponse = await axios.post('https://lrclib.net/api/publish', payload, {
+    const publishResponse = await postWithRetry('/api/publish', payload, {
       headers: {
         'X-Publish-Token': publishToken,
         'x-user-agent': 'LRCLIB-Frontend v1.0.0 (https://github.com/LaganYT/LRCLIB-Frontend)',
+        'User-Agent': 'LRCLIB-Frontend/1.0 (+https://github.com/LaganYT/LRCLIB-Frontend)',
         'Content-Type': 'application/json',
       },
     });
