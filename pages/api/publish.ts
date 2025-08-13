@@ -35,7 +35,6 @@ export default async function handler(
     const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
     const client = axios.create({
       baseURL: 'https://lrclib.net',
-      timeout: 45000,
       httpsAgent,
       headers: {
         'User-Agent': 'LRCLIB-Frontend/1.0 (+https://github.com/LaganYT/LRCLIB-Frontend)'
@@ -64,7 +63,7 @@ export default async function handler(
     };
 
     // Step 1: Obtain publish token (challenge-response)
-    const solveChallenge = async (maxSolveMs: number): Promise<string | null> => {
+    const solveChallenge = async (): Promise<string> => {
       const challengeResp = await postWithRetry<LRCLibChallengeResponse>(
         '/api/request-challenge',
         '',
@@ -72,7 +71,6 @@ export default async function handler(
       );
       const { prefix, target } = challengeResp.data;
 
-      const start = Date.now();
       const targetBuf = Buffer.from(target, 'hex');
       let nonceLocal = 0;
       const chunkSize = 10000;
@@ -85,28 +83,12 @@ export default async function handler(
             return `${prefix}${nonceLocal - 1}`;
           }
         }
-        if (Date.now() - start > maxSolveMs) {
-          return null; // give up and try a new challenge
-        }
         // yield to event loop to avoid starving the server
         await new Promise((r) => setImmediate(r));
       }
     };
-
-    // Try solving multiple challenges with a per-attempt budget
-    const maxAttempts = 3;
-    const perAttemptMs = 15000; // 15s each, ~45s total budget
-    let publishToken: string | null = null;
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const token = await solveChallenge(perAttemptMs);
-      if (token) {
-        publishToken = token;
-        break;
-      }
-    }
-    if (!publishToken) {
-      return res.status(503).json({ message: 'Failed to obtain publish token in time. Please try again.' });
-    }
+    // Solve challenge without artificial time budget
+    const publishToken = await solveChallenge();
 
     // Step 2: Publish lyrics to lrclib
     // Build payload following docs: omit empty lyrics fields; keep duration in seconds
