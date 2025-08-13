@@ -1,5 +1,5 @@
 # LRCLIB-frontend
-A website to publish lyrics to LRCLib.net
+A TypeScript-based website to publish lyrics to LRCLib.net
 
 ## Features
 - Search for lyrics dynamically using `/search/{query}`.
@@ -8,6 +8,8 @@ A website to publish lyrics to LRCLib.net
 - Upload audio client-side (required).
 - Sync lyrics line by line with the uploaded audio.
 - Publish synced lyrics to lrclib.net.
+- Full TypeScript support with type safety.
+- API route for publishing to lrclib.net with challenge-response mechanism.
 
 ## Instructions
 
@@ -28,6 +30,20 @@ A website to publish lyrics to LRCLib.net
    ```
 
 4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## TypeScript
+
+This project is now fully written in TypeScript. To run type checking:
+
+```bash
+npm run type-check
+```
+
+### Project Structure
+
+- `types/index.ts` - Type definitions for the entire project
+- `pages/api/publish.ts` - API route for publishing to lrclib.net
+- All React components are now `.tsx` files with proper type annotations
 
 ## Usage
 

@@ -4,28 +4,29 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FaSearch } from 'react-icons/fa';
+import { LRCLibSearchResult, LRCLibSong } from '../../types';
 
 export default function SearchResults() {
   const router = useRouter();
   const { query } = router.query;
-  const [results, setResults] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [selectedSong, setSelectedSong] = useState(null);
-  const [activeTab, setActiveTab] = useState('synced'); // 'synced' or 'plain'
-  const [searchQuery, setSearchQuery] = useState(query || '');
+  const [results, setResults] = useState<LRCLibSearchResult[]>([]);
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [selectedSong, setSelectedSong] = useState<LRCLibSong | null>(null);
+  const [activeTab, setActiveTab] = useState<'synced' | 'plain'>('synced');
+  const [searchQuery, setSearchQuery] = useState<string>(query as string || '');
 
   useEffect(() => {
     if (searchQuery) {
-      fetchResults(searchQuery); // Use searchQuery instead of query
+      fetchResults(searchQuery);
     }
-  }, [searchQuery]); // Updated dependency
+  }, [searchQuery]);
 
-  const fetchResults = async (searchQuery) => {
+  const fetchResults = async (searchQuery: string): Promise<void> => {
     try {
       setError('');
       setLoading(true);
-      const response = await axios.get(`https://lrclib.net/api/search?q=${searchQuery}`);
+      const response = await axios.get<LRCLibSearchResult[]>(`https://lrclib.net/api/search?q=${searchQuery}`);
       setResults(response.data || []);
     } catch (err) {
       setError('Failed to fetch search results.');
@@ -35,22 +36,22 @@ export default function SearchResults() {
     }
   };
 
-  const handleSearch = () => {
+  const handleSearch = (): void => {
     if (searchQuery.trim()) {
       router.push(`/search/${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
-  const handleSongClick = async (id) => {
+  const handleSongClick = async (id: string): Promise<void> => {
     try {
-      const response = await axios.get(`https://lrclib.net/api/get/${id}`);
+      const response = await axios.get<LRCLibSong>(`https://lrclib.net/api/get/${id}`);
       setSelectedSong(response.data);
     } catch (err) {
       setError('Failed to fetch song details.');
     }
   };
 
-  const closeModal = () => {
+  const closeModal = (): void => {
     setSelectedSong(null);
     setActiveTab('synced');
   };

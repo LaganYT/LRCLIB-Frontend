@@ -2,26 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import CryptoJS from 'crypto-js';
+import { SpotifyTrack, SpotifySearchResponse, SelectedSong } from '../types';
 
 const CLIENT_ID = '28a7d1b1ca074829b305916a96032709'; // Replace with your Spotify Client ID
 const CLIENT_SECRET = 'fa4e00f57aa443b685e7909a4e5148b6'; // Replace with your Spotify Client Secret
 
 export default function Publish() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [selectedSong, setSelectedSong] = useState(null);
-  const [plainLyrics, setPlainLyrics] = useState('');
-  const [syncedLyrics, setSyncedLyrics] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [accessToken, setAccessToken] = useState('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<SpotifyTrack[]>([]);
+  const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
+  const [plainLyrics, setPlainLyrics] = useState<string>('');
+  const [syncedLyrics, setSyncedLyrics] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [accessToken, setAccessToken] = useState<string>('');
 
-  const handleSearchQueryChange = (e) => setSearchQuery(e.target.value);
+  const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>): void => 
+    setSearchQuery(e.target.value);
 
   useEffect(() => {
-    const fetchAccessToken = async () => {
+    const fetchAccessToken = async (): Promise<void> => {
       try {
         const tokenResponse = await axios.post(
           'https://accounts.spotify.com/api/token',
@@ -43,13 +44,13 @@ export default function Publish() {
     fetchAccessToken();
   }, []); // Run once when the component mounts
 
-  const searchSpotify = async () => {
+  const searchSpotify = async (): Promise<void> => {
     if (!accessToken) {
       setError('Access token is missing. Please try again.');
       return;
     }
     try {
-      const { data } = await axios.get(`https://api.spotify.com/v1/search`, {
+      const { data } = await axios.get<SpotifySearchResponse>(`https://api.spotify.com/v1/search`, {
         params: { q: searchQuery, type: 'track', limit: 10 },
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -61,7 +62,7 @@ export default function Publish() {
     }
   };
 
-  const selectSong = (song) => {
+  const selectSong = (song: SpotifyTrack): void => {
     setSelectedSong({
       trackName: song.name,
       artistName: song.artists.map((artist) => artist.name).join(', '),
@@ -72,14 +73,14 @@ export default function Publish() {
     setSearchQuery('');
   };
 
-  const publishLyrics = async () => {
+  const publishLyrics = async (): Promise<void> => {
     const apiEndpoint = '/api/publish';
 
     const payload = {
-      trackName: selectedSong.trackName,
-      artistName: selectedSong.artistName,
-      albumName: selectedSong.albumName,
-      duration: selectedSong.duration,
+      trackName: selectedSong!.trackName,
+      artistName: selectedSong!.artistName,
+      albumName: selectedSong!.albumName,
+      duration: selectedSong!.duration,
       plainLyrics,
       syncedLyrics: syncedLyrics || null, // Ensure syncedLyrics is optional
     };
@@ -97,7 +98,7 @@ export default function Publish() {
       } else {
         throw new Error('Unexpected response status.');
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err.response) {
         const { status, data } = err.response;
         setError(data.message || 'An error occurred.');
@@ -107,7 +108,7 @@ export default function Publish() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!selectedSong) {
       setError('Please select a song from the search results.');
       return;
@@ -123,9 +124,8 @@ export default function Publish() {
     setSuccess('');
 
     try {
-      const publishToken = await obtainPublishToken();
-      await publishLyrics(publishToken);
-    } catch (err) {
+      await publishLyrics();
+    } catch (err: any) {
       setError(err.message || 'An error occurred.');
     } finally {
       setLoading(false);
@@ -168,14 +168,14 @@ export default function Publish() {
         onChange={(e) => setPlainLyrics(e.target.value)}
         placeholder="Enter plain lyrics here"
         className="textarea"
-        rows="10"
+        rows={10}
       />
       <textarea
         value={syncedLyrics}
         onChange={(e) => setSyncedLyrics(e.target.value)}
         placeholder="Enter synced lyrics here"
         className="textarea"
-        rows="10"
+        rows={10}
       />
       <button onClick={handleSubmit} className="button" disabled={loading}>
         {loading ? 'Publishing...' : 'Publish'}

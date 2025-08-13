@@ -1,14 +1,19 @@
+import { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
+import { LRCLibChallengeResponse, LRCLibPublishPayload, ApiResponse } from '../../types';
 
-export default async function handler(req, res) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ApiResponse>
+) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   try {
-    const { trackName, artistName, albumName, duration, plainLyrics, syncedLyrics } = req.body;
+    const { trackName, artistName, albumName, duration, plainLyrics, syncedLyrics } = req.body as LRCLibPublishPayload;
 
     // Validate required fields
     if (!trackName || !artistName || !albumName || !duration) {
@@ -24,7 +29,7 @@ export default async function handler(req, res) {
     }
 
     // Step 1: Obtain publish token (challenge-response)
-    const challengeResponse = await axios.post('https://lrclib.net/api/request-challenge');
+    const challengeResponse = await axios.post<LRCLibChallengeResponse>('https://lrclib.net/api/request-challenge');
     const { prefix, target } = challengeResponse.data;
 
     // Solve the challenge
@@ -38,7 +43,7 @@ export default async function handler(req, res) {
     const publishToken = `${prefix}:${nonce}`;
 
     // Step 2: Publish lyrics to lrclib
-    const payload = {
+    const payload: LRCLibPublishPayload = {
       trackName,
       artistName,
       albumName,
@@ -67,7 +72,7 @@ export default async function handler(req, res) {
       });
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Publish API error:', error);
     
     if (error.response) {

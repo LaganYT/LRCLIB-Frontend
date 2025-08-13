@@ -5,12 +5,18 @@ import { useRouter } from 'next/router';
 import { FaSearch, FaMicrophone, FaCog } from 'react-icons/fa';
 
 export default function Search() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState<string>('');
   const router = useRouter();
 
-  const handleSearch = () => {
+  const handleSearch = (): void => {
     if (query.trim()) {
       router.push(`/search/${encodeURIComponent(query.trim())}`);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
@@ -23,7 +29,7 @@ export default function Search() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()} // Updated from onKeyPress
+          onKeyDown={handleKeyDown}
           placeholder="Enter search query"
           className="input"
         />

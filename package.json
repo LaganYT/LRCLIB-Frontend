@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "axios": "^0.21.1",
@@ -16,7 +17,13 @@
     "crypto-js": "latest",
     "react-icons": "latest"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/crypto-js": "^4.2.0",
+    "typescript": "^5.0.0"
+  },
   "author": "Logan Latham",
   "license": "Unlicense"
 }
