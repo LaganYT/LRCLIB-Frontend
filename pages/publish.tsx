@@ -448,7 +448,6 @@ export default function Publish() {
     try {
       const response = await axios.post(apiEndpoint, payload, {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 15000,
       });
       if (response.status === 201) {
         setSuccess('Lyrics published successfully!');

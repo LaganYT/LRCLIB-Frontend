@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
-import CryptoJS from 'crypto-js';
+import { createHash } from 'crypto';
 import { LRCLibChallengeResponse, LRCLibPublishPayload, ApiResponse } from '../../types';
 
 export default async function handler(
@@ -29,13 +29,17 @@ export default async function handler(
     }
 
     // Step 1: Obtain publish token (challenge-response)
-    const challengeResponse = await axios.post<LRCLibChallengeResponse>('https://lrclib.net/api/request-challenge');
+    const challengeResponse = await axios.post<LRCLibChallengeResponse>(
+      'https://lrclib.net/api/request-challenge',
+      undefined,
+      { timeout: 45000 }
+    );
     const { prefix, target } = challengeResponse.data;
 
     // Solve the challenge
     let nonce = 0;
     while (true) {
-      const hash = CryptoJS.SHA256(`${prefix}:${nonce}`).toString(CryptoJS.enc.Hex);
+      const hash = createHash('sha256').update(`${prefix}:${nonce}`).digest('hex');
       if (hash <= target) break;
       nonce++;
     }
@@ -58,7 +62,6 @@ export default async function handler(
         'x-user-agent': 'LRCLIB-Frontend v1.0.0 (https://github.com/LaganYT/LRCLIB-Frontend)',
         'Content-Type': 'application/json',
       },
-      timeout: 10000,
     });
 
     if (publishResponse.status === 201) {
