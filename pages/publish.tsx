@@ -1,25 +1,39 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { SpotifyTrack, SpotifySearchResponse, SelectedSong } from '../types';
 
-const CLIENT_ID = '28a7d1b1ca074829b305916a96032709'; // Replace with your Spotify Client ID
-const CLIENT_SECRET = 'fa4e00f57aa443b685e7909a4e5148b6'; // Replace with your Spotify Client Secret
+const CLIENT_ID = '28a7d1b1ca074829b305916a96032709';
+const CLIENT_SECRET = 'fa4e00f57aa443b685e7909a4e5148b6';
+
+interface LyricLine {
+  text: string;
+  timeMs?: number;
+}
 
 export default function Publish() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SpotifyTrack[]>([]);
   const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
+
   const [plainLyrics, setPlainLyrics] = useState<string>('');
-  const [syncedLyrics, setSyncedLyrics] = useState<string>('');
+  const [lyricLines, setLyricLines] = useState<LyricLine[]>([]);
+  const [currentLineIndex, setCurrentLineIndex] = useState<number>(0);
+
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string>('');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
+  const [audioDurationSec, setAudioDurationSec] = useState<number | null>(null);
+
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [accessToken, setAccessToken] = useState<string>('');
 
-  const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>): void => 
-    setSearchQuery(e.target.value);
+  const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>): void => setSearchQuery(e.target.value);
 
   useEffect(() => {
     const fetchAccessToken = async (): Promise<void> => {
@@ -40,9 +54,8 @@ export default function Publish() {
         setError('Failed to generate access token. Please check your client ID and secret.');
       }
     };
-
     fetchAccessToken();
-  }, []); // Run once when the component mounts
+  }, []);
 
   const searchSpotify = async (): Promise<void> => {
     if (!accessToken) {
@@ -50,11 +63,9 @@ export default function Publish() {
       return;
     }
     try {
-      const { data } = await axios.get<SpotifySearchResponse>(`https://api.spotify.com/v1/search`, {
+      const { data } = await axios.get<SpotifySearchResponse>('https://api.spotify.com/v1/search', {
         params: { q: searchQuery, type: 'track', limit: 10 },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       setSearchResults(data.tracks.items);
     } catch (err) {
@@ -73,26 +84,197 @@ export default function Publish() {
     setSearchQuery('');
   };
 
+  useEffect(() => {
+    const lines = plainLyrics
+      .split(/\r?\n/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+    setLyricLines((prev) => {
+      const next: LyricLine[] = lines.map((text, i) => ({ text, timeMs: prev[i]?.timeMs }));
+      // If lines removed, drop extra timestamps; if added, timestamps default undefined
+      return next;
+    });
+    setCurrentLineIndex(0);
+  }, [plainLyrics]);
+
+  const onAudioFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0] || null;
+    setAudioFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      setSuccess('');
+      setError('');
+      // reset times when changing audio
+      setCurrentLineIndex(0);
+      setCurrentTimeMs(0);
+      setIsPlaying(false);
+    }
+  };
+
+  const onLoadedMetadata = (): void => {
+    if (audioRef.current) {
+      const duration = audioRef.current.duration;
+      if (!isNaN(duration)) setAudioDurationSec(Math.round(duration));
+    }
+  };
+
+  const onTimeUpdate = (): void => {
+    if (audioRef.current) setCurrentTimeMs(audioRef.current.currentTime * 1000);
+  };
+
+  const togglePlayPause = (): void => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const jumpTo = (ms: number): void => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = Math.max(0, ms / 1000);
+  };
+
+  const captureTimestampForCurrentLine = (): void => {
+    if (!audioRef.current) return;
+    if (currentLineIndex >= lyricLines.length) return;
+    const nowMs = Math.floor(audioRef.current.currentTime * 1000);
+    setLyricLines((prev) => {
+      const next = [...prev];
+      next[currentLineIndex] = { ...next[currentLineIndex], timeMs: nowMs };
+      return next;
+    });
+    setCurrentLineIndex((idx) => Math.min(idx + 1, lyricLines.length));
+  };
+
+  const undoLastTimestamp = (): void => {
+    if (currentLineIndex <= 0) return;
+    const prevIndex = currentLineIndex - 1;
+    setLyricLines((prev) => {
+      const next = [...prev];
+      next[prevIndex] = { ...next[prevIndex], timeMs: undefined };
+      return next;
+    });
+    setCurrentLineIndex(prevIndex);
+    if (lyricLines[prevIndex]?.timeMs != null) jumpTo(lyricLines[prevIndex].timeMs!);
+  };
+
+  const clearAllTimestamps = (): void => {
+    setLyricLines((prev) => prev.map((l) => ({ ...l, timeMs: undefined })));
+    setCurrentLineIndex(0);
+    jumpTo(0);
+  };
+
+  const formatMs = (ms?: number): string => {
+    if (ms == null) return '';
+    const totalMs = Math.max(0, Math.floor(ms));
+    const totalSeconds = Math.floor(totalMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60)
+      .toString()
+      .padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    const hundredths = Math.floor((totalMs % 1000) / 10)
+      .toString()
+      .padStart(2, '0');
+    return `${minutes}:${seconds}.${hundredths}`;
+  };
+
+  const parseTimestamp = (value: string): number | undefined => {
+    const m = value.match(/^(\d{1,2}):(\d{2})\.(\d{2})$/);
+    if (!m) return undefined;
+    const minutes = parseInt(m[1], 10);
+    const seconds = parseInt(m[2], 10);
+    const hundredths = parseInt(m[3], 10);
+    if (seconds >= 60) return undefined;
+    return minutes * 60 * 1000 + seconds * 1000 + hundredths * 10;
+  };
+
+  const setLineTimestamp = (index: number, value: string): void => {
+    const ms = parseTimestamp(value);
+    setLyricLines((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], timeMs: ms };
+      return next;
+    });
+  };
+
+  // Do not include LRC header tags when publishing to LRCLIB
+  const stripLrcHeaders = (lrc: string): string => {
+    return lrc
+      .split('\n')
+      .filter((line) => !/^\s*\[(ti|ar|al|length)\s*:/i.test(line))
+      .join('\n');
+  };
+
+  const generatedLrc = useMemo(() => {
+    const header: string[] = [];
+    if (selectedSong?.trackName) header.push(`[ti:${selectedSong.trackName}]`);
+    if (selectedSong?.artistName) header.push(`[ar:${selectedSong.artistName}]`);
+    if (selectedSong?.albumName) header.push(`[al:${selectedSong.albumName}]`);
+    const len = audioDurationSec ?? selectedSong?.duration ?? null;
+    if (len != null) {
+      const minutes = Math.floor(len / 60)
+        .toString()
+        .padStart(2, '0');
+      const seconds = (len % 60).toString().padStart(2, '0');
+      header.push(`[length:${minutes}:${seconds}.00]`);
+    }
+
+    const body = lyricLines
+      .filter((l) => l.text.length > 0)
+      .map((l) => {
+        const ts = formatMs(l.timeMs ?? 0);
+        return `[${ts}]${l.text}`;
+      });
+
+    return [...header, ...body].join('\n');
+  }, [lyricLines, selectedSong, audioDurationSec]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        captureTimestampForCurrentLine();
+      } else if (e.code === 'Backspace') {
+        e.preventDefault();
+        undoLastTimestamp();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [captureTimestampForCurrentLine, undoLastTimestamp]);
+
   const publishLyrics = async (): Promise<void> => {
     const apiEndpoint = '/api/publish';
+    const duration = audioDurationSec ?? selectedSong?.duration ?? 0;
+    if (!duration) {
+      setError('Duration is missing. Please upload an audio file or select a song.');
+      return;
+    }
+    if (!selectedSong) {
+      setError('Please select a song from the search results.');
+      return;
+    }
 
     const payload = {
-      trackName: selectedSong!.trackName,
-      artistName: selectedSong!.artistName,
-      albumName: selectedSong!.albumName,
-      duration: selectedSong!.duration,
+      trackName: selectedSong.trackName,
+      artistName: selectedSong.artistName,
+      albumName: selectedSong.albumName,
+      duration,
       plainLyrics,
-      syncedLyrics: syncedLyrics || null, // Ensure syncedLyrics is optional
+      // Exclude [ti], [ar], [al], [length] when sending to LRCLIB
+      syncedLyrics: stripLrcHeaders(generatedLrc) || null,
     };
 
     try {
       const response = await axios.post(apiEndpoint, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 15000,
       });
-
       if (response.status === 201) {
         setSuccess('Lyrics published successfully!');
       } else {
@@ -100,8 +282,7 @@ export default function Publish() {
       }
     } catch (err: any) {
       if (err.response) {
-        const { status, data } = err.response;
-        setError(data.message || 'An error occurred.');
+        setError(err.response.data?.message || 'An error occurred.');
       } else {
         setError('Failed to publish lyrics. Please try again.');
       }
@@ -109,24 +290,15 @@ export default function Publish() {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (!selectedSong) {
-      setError('Please select a song from the search results.');
+    if (!plainLyrics) {
+      setError('Enter plain lyrics before syncing.');
       return;
     }
-
-    if (!plainLyrics && !syncedLyrics) {
-      setError('At least one of plain lyrics or synced lyrics must be provided.');
-      return;
-    }
-
     setLoading(true);
     setError('');
     setSuccess('');
-
     try {
       await publishLyrics();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred.');
     } finally {
       setLoading(false);
     }
@@ -136,16 +308,17 @@ export default function Publish() {
     <div className="container">
       <h1>Publish Lyrics</h1>
       <p>Search for a song on Spotify to autofill details.</p>
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={handleSearchQueryChange}
-        placeholder="Search for a song"
-        className="input"
-      />
-      <button onClick={searchSpotify} className="button">
-        Search
-      </button>
+      <div className="search-bar">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={handleSearchQueryChange}
+          placeholder="Search for a song"
+          className="input"
+        />
+        <button onClick={searchSpotify} className="button">Search</button>
+      </div>
+
       {searchResults.length > 0 && (
         <ul className="search-results">
           {searchResults.map((song) => (
@@ -155,28 +328,76 @@ export default function Publish() {
           ))}
         </ul>
       )}
+
       {selectedSong && (
         <div className="song-details">
           <p><strong>Track:</strong> {selectedSong.trackName}</p>
           <p><strong>Artist:</strong> {selectedSong.artistName}</p>
           <p><strong>Album:</strong> {selectedSong.albumName}</p>
-          <p><strong>Duration:</strong> {selectedSong.duration} seconds</p>
+          <p><strong>Duration:</strong> {(audioDurationSec ?? selectedSong.duration) } seconds</p>
         </div>
       )}
-      <textarea
-        value={plainLyrics}
-        onChange={(e) => setPlainLyrics(e.target.value)}
-        placeholder="Enter plain lyrics here"
-        className="textarea"
-        rows={10}
-      />
-      <textarea
-        value={syncedLyrics}
-        onChange={(e) => setSyncedLyrics(e.target.value)}
-        placeholder="Enter synced lyrics here"
-        className="textarea"
-        rows={10}
-      />
+
+      <div className="editor">
+        <div className="editor-left">
+          <h3>1) Upload audio</h3>
+          <input type="file" accept="audio/*" onChange={onAudioFileChange} />
+          {audioUrl && (
+            <div className="audio-controls">
+              <audio
+                ref={audioRef}
+                src={audioUrl}
+                onLoadedMetadata={onLoadedMetadata}
+                onTimeUpdate={onTimeUpdate}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                controls
+              />
+              <div className="transport">
+                <button onClick={togglePlayPause} className="button">{isPlaying ? 'Pause' : 'Play'}</button>
+                <button onClick={() => jumpTo(Math.max(0, currentTimeMs - 5000))} className="button">-5s</button>
+                <button onClick={() => jumpTo(currentTimeMs + 5000)} className="button">+5s</button>
+                <span>Now: {formatMs(currentTimeMs)}</span>
+              </div>
+            </div>
+          )}
+
+          <h3>2) Paste plain lyrics</h3>
+          <textarea
+            value={plainLyrics}
+            onChange={(e) => setPlainLyrics(e.target.value)}
+            placeholder="Enter plain lyrics, one line per lyric"
+            className="textarea"
+            rows={12}
+          />
+        </div>
+
+        <div className="editor-right">
+          <h3>3) Sync lines (tap-to-time)</h3>
+          <div className="sync-toolbar">
+            <button onClick={captureTimestampForCurrentLine} className="button">Tap timestamp (Space/Enter)</button>
+            <button onClick={undoLastTimestamp} className="button">Undo (Backspace)</button>
+            <button onClick={clearAllTimestamps} className="button">Clear all</button>
+          </div>
+          <ul className="lines">
+            {lyricLines.map((line, idx) => (
+              <li key={idx} className={`line ${idx === currentLineIndex ? 'active' : ''}`} onClick={() => setCurrentLineIndex(idx)}>
+                <input
+                  className="timestamp-input"
+                  value={formatMs(line.timeMs)}
+                  onChange={(e) => setLineTimestamp(idx, e.target.value)}
+                  placeholder="mm:ss.xx"
+                />
+                <span className="line-text">{line.text}</span>
+              </li>
+            ))}
+          </ul>
+
+          <h3>4) Generated LRC</h3>
+          <textarea value={generatedLrc} readOnly className="textarea" rows={12} />
+        </div>
+      </div>
+
       <button onClick={handleSubmit} className="button" disabled={loading}>
         {loading ? 'Publishing...' : 'Publish'}
       </button>
