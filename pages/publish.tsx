@@ -435,15 +435,15 @@ export default function Publish() {
       return;
     }
 
-    const payload = {
+    const payload: Record<string, any> = {
       trackName: selectedSong.trackName,
       artistName: selectedSong.artistName,
       albumName: selectedSong.albumName,
       duration,
-      plainLyrics,
-      // Exclude [ti], [ar], [al], [length] when sending to LRCLIB
-      syncedLyrics: stripLrcHeaders(generatedLrc) || null,
     };
+    if (plainLyrics.trim()) payload.plainLyrics = plainLyrics.trim();
+    const lrcBodyOnly = stripLrcHeaders(generatedLrc).trim();
+    if (lrcBodyOnly) payload.syncedLyrics = lrcBodyOnly;
 
     try {
       const response = await axios.post(apiEndpoint, payload, {
@@ -528,7 +528,6 @@ export default function Publish() {
                 controls
               />
               <div className="transport">
-                <button onClick={togglePlayPause} className="button">{isPlaying ? 'Pause' : 'Play'}</button>
                 <button onClick={() => jumpTo(Math.max(0, currentTimeMs - 5000))} className="button">-5s</button>
                 <button onClick={() => jumpTo(currentTimeMs + 5000)} className="button">+5s</button>
                 <span>Now: {formatMs(currentTimeMs)}</span>

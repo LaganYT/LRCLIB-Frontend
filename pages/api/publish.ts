@@ -22,11 +22,13 @@ export default async function handler(
       });
     }
 
-    if (!plainLyrics && !syncedLyrics) {
-      return res.status(400).json({ 
-        message: 'At least one of plainLyrics or syncedLyrics must be provided' 
-      });
-    }
+    // Per docs, instrumental is allowed when both lyrics are empty
+
+    const stripLrcHeaders = (lrc: string): string =>
+      lrc
+        .split('\n')
+        .filter((line) => !/^\s*\[(ti|ar|al|length)\s*:/i.test(line))
+        .join('\n');
 
     // Step 1: Obtain publish token (challenge-response)
     const challengeResponse = await axios.post<LRCLibChallengeResponse>(
@@ -46,14 +48,18 @@ export default async function handler(
     const publishToken = `${prefix}:${nonce}`;
 
     // Step 2: Publish lyrics to lrclib
-    const payload: LRCLibPublishPayload = {
+    // Build payload following docs: omit empty lyrics fields; keep duration in seconds
+    const sanitizedPlain = typeof plainLyrics === 'string' ? plainLyrics.trim() : undefined;
+    const sanitizedSynced = typeof syncedLyrics === 'string' ? stripLrcHeaders(syncedLyrics.trim()) : undefined;
+
+    const payload: any = {
       trackName,
       artistName,
       albumName,
-      duration,
-      plainLyrics,
-      syncedLyrics: syncedLyrics || undefined,
+      duration: Number(duration),
     };
+    if (sanitizedPlain) payload.plainLyrics = sanitizedPlain;
+    if (sanitizedSynced) payload.syncedLyrics = sanitizedSynced;
 
     const publishResponse = await axios.post('https://lrclib.net/api/publish', payload, {
       headers: {
