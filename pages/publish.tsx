@@ -394,6 +394,15 @@ export default function Publish() {
     return [...header, ...body].join('\n');
   }, [lyricLines, selectedSong, audioDurationSec]);
 
+  // LRC body for publishing: only include lines that actually have a timestamp
+  const generatedLrcBody = useMemo(() => {
+    const sorted = lyricLines
+      .filter((l) => l.text.length > 0 && l.timeMs != null)
+      .slice()
+      .sort((a, b) => (a.timeMs as number) - (b.timeMs as number));
+    return sorted.map((l) => `[${formatMs(l.timeMs)}]${l.text}`).join('\n').trim();
+  }, [lyricLines]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -442,7 +451,7 @@ export default function Publish() {
       duration,
     };
     if (plainLyrics.trim()) payload.plainLyrics = plainLyrics.trim();
-    const lrcBodyOnly = stripLrcHeaders(generatedLrc).trim();
+    const lrcBodyOnly = generatedLrcBody;
     if (lrcBodyOnly) payload.syncedLyrics = lrcBodyOnly;
 
     try {

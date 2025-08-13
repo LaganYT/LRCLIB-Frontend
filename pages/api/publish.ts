@@ -41,6 +41,7 @@ export default async function handler(
     let nonce = 0;
     while (true) {
       const hash = createHash('sha256').update(`${prefix}:${nonce}`).digest('hex');
+      // Docs: accept when SHA256(prefix:nonce) <= target
       if (hash <= target) break;
       nonce++;
     }
@@ -60,6 +61,13 @@ export default async function handler(
     };
     if (sanitizedPlain) payload.plainLyrics = sanitizedPlain;
     if (sanitizedSynced) payload.syncedLyrics = sanitizedSynced;
+
+    // Basic validation mirroring LRCLIB rules
+    if (!payload.plainLyrics && !payload.syncedLyrics) {
+      // Instrumental is allowed; send empty strings explicitly per docs
+      payload.plainLyrics = '';
+      payload.syncedLyrics = '';
+    }
 
     const publishResponse = await axios.post('https://lrclib.net/api/publish', payload, {
       headers: {
@@ -81,14 +89,23 @@ export default async function handler(
     }
 
   } catch (error: any) {
-    console.error('Publish API error:', error);
+    // Log useful error details for diagnosis
+    if (error?.response) {
+      console.error('Publish API error response:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers,
+      });
+    } else {
+      console.error('Publish API error:', error);
+    }
     
     if (error.response) {
       // Error from lrclib API
       const { status, data } = error.response;
       return res.status(status).json({ 
-        message: data.message || 'Error from lrclib API',
-        error: data 
+        message: data?.message || 'Error from lrclib API',
+        error: data,
       });
     } else if (error.request) {
       // Network error
