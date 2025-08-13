@@ -58,18 +58,17 @@ export default function SearchResults() {
 
   return (
     <div className="container">
-      <div className="navbar">
-        <button onClick={() => router.push('/')} className="button">Home</button>
-        <div className="search-bar">
-          <FaSearch className="icon" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search for lyrics..."
-            className="input"
-          />
-        </div>
+      <div className="search-bar">
+        <FaSearch className="icon" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Search for lyrics..."
+          className="input"
+        />
+        <button onClick={handleSearch} className="button">Search</button>
       </div>
       <h1>Search Results for "{query}"</h1>
       {loading && <p>Loading...</p>}
