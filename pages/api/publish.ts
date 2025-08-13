@@ -32,7 +32,6 @@ export default async function handler(
     const challengeResponse = await axios.post<LRCLibChallengeResponse>(
       'https://lrclib.net/api/request-challenge',
       undefined,
-      { timeout: 45000 }
     );
     const { prefix, target } = challengeResponse.data;
 
