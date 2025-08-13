@@ -72,26 +72,8 @@ export default function Publish() {
     setSearchQuery('');
   };
 
-  const obtainPublishToken = async () => {
-    try {
-      const { data } = await axios.post('https://lrclib.net/api/request-challenge');
-      const { prefix, target } = data;
-
-      let nonce = 0;
-      while (true) {
-        const hash = CryptoJS.SHA256(`${prefix}:${nonce}`).toString(CryptoJS.enc.Hex); // Fixed hash format
-        if (hash <= target) break;
-        nonce++;
-      }
-
-      return `${prefix}:${nonce}`;
-    } catch (err) {
-      throw new Error('Failed to obtain publish token.');
-    }
-  };
-
-  const publishLyrics = async (publishToken) => {
-    const apiEndpoint = 'https://lrclib.net/api/publish';
+  const publishLyrics = async () => {
+    const apiEndpoint = '/api/publish';
 
     const payload = {
       trackName: selectedSong.trackName,
@@ -105,8 +87,6 @@ export default function Publish() {
     try {
       const response = await axios.post(apiEndpoint, payload, {
         headers: {
-          'X-Publish-Token': publishToken,
-          'x-user-agent': 'LRCLIB-Frontend v1.0.0 (https://github.com/LaganYT/LRCLIB-Frontend)',
           'Content-Type': 'application/json',
         },
         timeout: 10000,
