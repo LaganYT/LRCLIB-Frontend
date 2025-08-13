@@ -63,6 +63,16 @@ export default async function handler(
     };
 
     // Step 1: Obtain publish token (challenge-response)
+    // Byte-by-byte comparison matching the reference implementation
+    const verifyNonce = (result: Buffer, target: Buffer): boolean => {
+      if (result.length !== target.length) return false;
+      for (let i = 0; i < result.length - 1; i++) {
+        if (result[i] > target[i]) return false;
+        else if (result[i] < target[i]) break;
+      }
+      return true;
+    };
+
     const solveChallenge = async (): Promise<string> => {
       const challengeResp = await postWithRetry<LRCLibChallengeResponse>(
         '/api/request-challenge',
@@ -76,12 +86,12 @@ export default async function handler(
       const chunkSize = 10000;
       while (true) {
         for (let i = 0; i < chunkSize; i++) {
-          const candidate = prefix + (nonceLocal++).toString();
-          const hashBuf = createHash('sha256').update(candidate).digest();
-          // Accept when SHA256(prefix + nonce) <= target (byte-wise)
-          if (hashBuf.compare(targetBuf) <= 0) {
-            return `${prefix}${nonceLocal - 1}`;
+          const input: string = `${prefix}${nonceLocal}`;
+          const hashBuf = createHash('sha256').update(input).digest();
+          if (verifyNonce(hashBuf, targetBuf)) {
+            return `${prefix}:${nonceLocal}`;
           }
+          nonceLocal++;
         }
         // yield to event loop to avoid starving the server
         await new Promise((r) => setImmediate(r));
