@@ -513,7 +513,11 @@ export default function Publish() {
                 key={idx}
                 ref={(el) => (lineRefs.current[idx] = el)}
                 className={`line ${idx === activeLineIndex ? 'active' : ''} ${idx === currentLineIndex ? 'cue' : ''}`}
-                onClick={() => setCurrentLineIndex(idx)}
+                onClick={() => {
+                  setCurrentLineIndex(idx);
+                  const t = lyricLines[idx]?.timeMs;
+                  if (t != null) jumpTo(t);
+                }}
               >
                 <input
                   className="timestamp-input"
