@@ -251,7 +251,8 @@ export default function Publish() {
   const adjustLineTimestamp = (index: number, deltaMs: number): void => {
     setLyricLines((prev) => {
       const next = [...prev];
-      const current = next[index]?.timeMs ?? 0;
+      const baseWhenUndefined = Math.floor(currentTimeMs);
+      const current = next[index]?.timeMs ?? baseWhenUndefined;
       const updated = Math.max(0, current + deltaMs);
       next[index] = { ...next[index], timeMs: updated };
       return next;
@@ -262,8 +263,23 @@ export default function Publish() {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
       const delta = e.key === 'ArrowUp' ? 100 : -100; // 0.1s increments
+      const current = lyricLines[index]?.timeMs ?? Math.floor(currentTimeMs);
+      const updated = Math.max(0, current + delta);
       adjustLineTimestamp(index, delta);
+      jumpTo(updated);
     }
+  };
+
+  const bumpCurrentLineTimestamp = (deltaMs: number): void => {
+    if (currentLineIndex < 0 || currentLineIndex >= lyricLines.length) return;
+    const current = lyricLines[currentLineIndex]?.timeMs ?? Math.floor(currentTimeMs);
+    const updated = Math.max(0, current + deltaMs);
+    setLyricLines((prev) => {
+      const next = [...prev];
+      next[currentLineIndex] = { ...next[currentLineIndex], timeMs: updated };
+      return next;
+    });
+    jumpTo(updated);
   };
 
   // Do not include LRC header tags when publishing to LRCLIB
@@ -380,17 +396,32 @@ export default function Publish() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'Enter') {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+
+      // Global shortcuts; skip when user is typing in inputs/textarea
+      const isTyping = tag === 'input' || tag === 'textarea';
+
+      if ((e.code === 'Space' || e.code === 'Enter') && !isTyping) {
         e.preventDefault();
         captureTimestampForCurrentLine();
-      } else if (e.code === 'Backspace') {
+        return;
+      }
+      if (e.code === 'Backspace' && !isTyping) {
         e.preventDefault();
         undoLastTimestamp();
+        return;
+      }
+      if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !isTyping) {
+        e.preventDefault();
+        const delta = e.key === 'ArrowUp' ? 100 : -100; // 0.1s
+        bumpCurrentLineTimestamp(delta);
+        return;
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [captureTimestampForCurrentLine, undoLastTimestamp]);
+  }, [captureTimestampForCurrentLine, undoLastTimestamp, bumpCurrentLineTimestamp, currentLineIndex, currentTimeMs, lyricLines.length]);
 
   const publishLyrics = async (): Promise<void> => {
     const apiEndpoint = '/api/publish';
