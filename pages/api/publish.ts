@@ -49,7 +49,7 @@ export default async function handler(
       albumName,
       duration,
       plainLyrics,
-      syncedLyrics: syncedLyrics || null,
+      syncedLyrics: syncedLyrics || undefined,
     };
 
     const publishResponse = await axios.post('https://lrclib.net/api/publish', payload, {
