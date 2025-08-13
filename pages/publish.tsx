@@ -30,6 +30,7 @@ export default function Publish() {
   const [lrcImport, setLrcImport] = useState<string>('');
   const [activeLineIndex, setActiveLineIndex] = useState<number>(-1);
   const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const linesContainerRef = useRef<HTMLUListElement | null>(null);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -152,13 +153,20 @@ export default function Publish() {
     setActiveLineIndex(active);
   }, [currentTimeMs, isPlaying, timedLineMap]);
 
-  // Auto-scroll active line into view
+  // Auto-scroll active line into view inside the lyrics container only
   useEffect(() => {
     if (activeLineIndex < 0) return;
-    const el = lineRefs.current[activeLineIndex];
-    if (el && typeof el.scrollIntoView === 'function') {
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
+    const container = linesContainerRef.current;
+    const activeEl = lineRefs.current[activeLineIndex];
+    if (!container || !activeEl) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const activeRect = activeEl.getBoundingClientRect();
+    const offsetWithinContainer = activeRect.top - containerRect.top;
+    const targetScrollTop =
+      container.scrollTop + offsetWithinContainer - container.clientHeight / 2 + activeEl.clientHeight / 2;
+
+    container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' });
   }, [activeLineIndex]);
 
   const togglePlayPause = (): void => {
@@ -507,7 +515,7 @@ export default function Publish() {
             <button onClick={undoLastTimestamp} className="button">Undo (Backspace)</button>
             <button onClick={clearAllTimestamps} className="button">Clear all</button>
           </div>
-          <ul className="lines">
+          <ul className="lines" ref={linesContainerRef}>
             {lyricLines.map((line, idx) => (
               <li
                 key={idx}
