@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FaSearch } from 'react-icons/fa';
 import { LRCLibSearchResult, LRCLibSong } from '../../types';
+import Loading from '../../components/Loading';
 
 export default function SearchResults() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function SearchResults() {
   const [results, setResults] = useState<LRCLibSearchResult[]>([]);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [songLoading, setSongLoading] = useState<boolean>(false);
   const [selectedSong, setSelectedSong] = useState<LRCLibSong | null>(null);
   const [activeTab, setActiveTab] = useState<'synced' | 'plain'>('synced');
   const [searchQuery, setSearchQuery] = useState<string>(query as string || '');
@@ -44,10 +46,14 @@ export default function SearchResults() {
 
   const handleSongClick = async (id: string): Promise<void> => {
     try {
+      setSongLoading(true);
+      setError('');
       const response = await axios.get<LRCLibSong>(`https://lrclib.net/api/get/${id}`);
       setSelectedSong(response.data);
     } catch (err) {
       setError('Failed to fetch song details.');
+    } finally {
+      setSongLoading(false);
     }
   };
 
@@ -71,7 +77,12 @@ export default function SearchResults() {
         <button onClick={handleSearch} className="button">Search</button>
       </div>
       <h1>Search Results for "{query}"</h1>
-      {loading && <p>Loading...</p>}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <Loading type="dots" size="large" />
+          <p style={{ marginTop: '20px' }}>Searching for lyrics...</p>
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
       <ul className="results-list">
         {results.length > 0 ? (
@@ -96,7 +107,18 @@ export default function SearchResults() {
           )
         )}
       </ul>
-      {selectedSong && (
+      {songLoading && (
+        <div className="modal">
+          <div className="modal-content">
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <Loading type="dots" size="large" />
+              <p style={{ marginTop: '20px' }}>Loading song details...</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {selectedSong && !songLoading && (
         <div className="modal">
           <div className="modal-content">
             <span className="close-button" onClick={closeModal}>&times;</span>

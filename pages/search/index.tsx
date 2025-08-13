@@ -3,13 +3,18 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { FaSearch, FaMicrophone, FaCog } from 'react-icons/fa';
+import Loading from '../../components/Loading';
 
 export default function Search() {
   const [query, setQuery] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
-  const handleSearch = (): void => {
+  const handleSearch = async (): Promise<void> => {
     if (query.trim()) {
+      setIsLoading(true);
+      // Simulate a small delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 300));
       router.push(`/search/${encodeURIComponent(query.trim())}`);
     }
   };
@@ -18,6 +23,10 @@ export default function Search() {
     if (e.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const handleButtonClick = (): void => {
+    handleSearch();
   };
 
   return (
@@ -32,7 +41,16 @@ export default function Search() {
           onKeyDown={handleKeyDown}
           placeholder="Enter search query"
           className="input"
+          disabled={isLoading}
         />
+        <button 
+          onClick={handleButtonClick}
+          disabled={isLoading || !query.trim()}
+          className="button"
+          style={{ marginLeft: '10px' }}
+        >
+          {isLoading ? <Loading type="dots" size="small" /> : 'Search'}
+        </button>
         <FaMicrophone className="icon" />
         <FaCog className="icon" />
       </div>

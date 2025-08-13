@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { SpotifyTrack, SpotifySearchResponse, SelectedSong } from '../types';
+import Loading from '../components/Loading';
 
 const CLIENT_ID = '28a7d1b1ca074829b305916a96032709';
 const CLIENT_SECRET = 'fa4e00f57aa443b685e7909a4e5148b6';
@@ -33,6 +34,8 @@ export default function Publish() {
   const linesContainerRef = useRef<HTMLUListElement | null>(null);
 
   const [loading, setLoading] = useState<boolean>(false);
+  const [searchLoading, setSearchLoading] = useState<boolean>(false);
+  const [publishLoading, setPublishLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [accessToken, setAccessToken] = useState<string>('');
@@ -67,6 +70,8 @@ export default function Publish() {
       return;
     }
     try {
+      setSearchLoading(true);
+      setError('');
       const { data } = await axios.get<SpotifySearchResponse>('https://api.spotify.com/v1/search', {
         params: { q: searchQuery, type: 'track', limit: 10 },
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -74,6 +79,8 @@ export default function Publish() {
       setSearchResults(data.tracks.items);
     } catch (err) {
       setError('Failed to search Spotify. Please try again.');
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -455,6 +462,8 @@ export default function Publish() {
     if (lrcBodyOnly) payload.syncedLyrics = lrcBodyOnly;
 
     try {
+      setPublishLoading(true);
+      setError('');
       const response = await axios.post(apiEndpoint, payload, {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -469,6 +478,8 @@ export default function Publish() {
       } else {
         setError('Failed to publish lyrics. Please try again.');
       }
+    } finally {
+      setPublishLoading(false);
     }
   };
 
@@ -477,14 +488,9 @@ export default function Publish() {
       setError('Enter plain lyrics before syncing.');
       return;
     }
-    setLoading(true);
     setError('');
     setSuccess('');
-    try {
-      await publishLyrics();
-    } finally {
-      setLoading(false);
-    }
+    await publishLyrics();
   };
 
   return (
@@ -499,10 +505,24 @@ export default function Publish() {
           placeholder="Search for a song"
           className="input"
         />
-        <button onClick={searchSpotify} className="button">Search</button>
+        <button 
+          onClick={searchSpotify} 
+          className={`button ${searchLoading ? 'loading' : ''}`}
+          disabled={searchLoading || !searchQuery.trim()}
+        >
+          {searchLoading ? <Loading type="dots" size="small" /> : 'Search'}
+        </button>
       </div>
 
-      {searchResults.length > 0 && (
+      {searchLoading && (
+        <div className="search-results">
+          {[...Array(5)].map((_, index) => (
+            <div key={index} className="loading-skeleton" style={{ height: '40px', marginBottom: '10px' }} />
+          ))}
+        </div>
+      )}
+      
+      {!searchLoading && searchResults.length > 0 && (
         <ul className="search-results">
           {searchResults.map((song) => (
             <li key={song.id} onClick={() => selectSong(song)}>
@@ -600,11 +620,23 @@ export default function Publish() {
         </div>
       </div>
 
-      <button onClick={handleSubmit} className="button" disabled={loading}>
-        {loading ? 'Publishing...' : 'Publish'}
+      <button 
+        onClick={handleSubmit} 
+        className={`button ${publishLoading ? 'loading' : ''}`}
+        disabled={publishLoading || !plainLyrics.trim()}
+      >
+        {publishLoading ? <Loading type="dots" size="small" /> : 'Publish'}
       </button>
       {error && <p className="error">{error}</p>}
       {success && <p className="success">{success}</p>}
+      
+      {publishLoading && (
+        <Loading 
+          type="overlay" 
+          text="Publishing lyrics to LRCLib..." 
+          showProgress={true}
+        />
+      )}
     </div>
   );
 }
