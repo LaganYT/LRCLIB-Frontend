@@ -368,3 +368,46 @@ a:hover {
   border-radius: 25px;
   font-weight: bold;
 }
+
+/* Lyric syncing list */
+.lines {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  transition: background-color 0.2s ease;
+}
+
+.line .timestamp-input {
+  width: 90px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-color);
+}
+
+.line.active {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.line.active .timestamp-input {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.line.cue:not(.active) {
+  outline: 1px dashed var(--primary-color);
+}

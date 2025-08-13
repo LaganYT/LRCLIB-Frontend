@@ -28,6 +28,8 @@ export default function Publish() {
   const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
   const [audioDurationSec, setAudioDurationSec] = useState<number | null>(null);
   const [lrcImport, setLrcImport] = useState<string>('');
+  const [activeLineIndex, setActiveLineIndex] = useState<number>(-1);
+  const lineRefs = useRef<Array<HTMLLIElement | null>>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -123,6 +125,41 @@ export default function Publish() {
   const onTimeUpdate = (): void => {
     if (audioRef.current) setCurrentTimeMs(audioRef.current.currentTime * 1000);
   };
+
+  // Build a sorted list of timed lines to map current time -> active line
+  const timedLineMap = useMemo(() => {
+    return lyricLines
+      .map((l, i) => ({ index: i, timeMs: l.timeMs }))
+      .filter((x) => x.timeMs != null)
+      .sort((a, b) => (a.timeMs as number) - (b.timeMs as number));
+  }, [lyricLines]);
+
+  // While playing, update the highlighted active line based on current time
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (timedLineMap.length === 0) {
+      setActiveLineIndex(-1);
+      return;
+    }
+    let active = -1;
+    for (let i = 0; i < timedLineMap.length; i++) {
+      if (currentTimeMs >= (timedLineMap[i].timeMs as number)) {
+        active = timedLineMap[i].index;
+      } else {
+        break;
+      }
+    }
+    setActiveLineIndex(active);
+  }, [currentTimeMs, isPlaying, timedLineMap]);
+
+  // Auto-scroll active line into view
+  useEffect(() => {
+    if (activeLineIndex < 0) return;
+    const el = lineRefs.current[activeLineIndex];
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [activeLineIndex]);
 
   const togglePlayPause = (): void => {
     if (!audioRef.current) return;
@@ -472,7 +509,12 @@ export default function Publish() {
           </div>
           <ul className="lines">
             {lyricLines.map((line, idx) => (
-              <li key={idx} className={`line ${idx === currentLineIndex ? 'active' : ''}`} onClick={() => setCurrentLineIndex(idx)}>
+              <li
+                key={idx}
+                ref={(el) => (lineRefs.current[idx] = el)}
+                className={`line ${idx === activeLineIndex ? 'active' : ''} ${idx === currentLineIndex ? 'cue' : ''}`}
+                onClick={() => setCurrentLineIndex(idx)}
+              >
                 <input
                   className="timestamp-input"
                   value={formatMs(line.timeMs)}
