@@ -248,6 +248,24 @@ export default function Publish() {
     });
   };
 
+  const adjustLineTimestamp = (index: number, deltaMs: number): void => {
+    setLyricLines((prev) => {
+      const next = [...prev];
+      const current = next[index]?.timeMs ?? 0;
+      const updated = Math.max(0, current + deltaMs);
+      next[index] = { ...next[index], timeMs: updated };
+      return next;
+    });
+  };
+
+  const onTimestampKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number): void => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const delta = e.key === 'ArrowUp' ? 100 : -100; // 0.1s increments
+      adjustLineTimestamp(index, delta);
+    }
+  };
+
   // Do not include LRC header tags when publishing to LRCLIB
   const stripLrcHeaders = (lrc: string): string => {
     return lrc
@@ -519,7 +537,7 @@ export default function Publish() {
             {lyricLines.map((line, idx) => (
               <li
                 key={idx}
-                ref={(el) => (lineRefs.current[idx] = el)}
+                ref={(el) => { lineRefs.current[idx] = el; }}
                 className={`line ${idx === activeLineIndex ? 'active' : ''} ${idx === currentLineIndex ? 'cue' : ''}`}
                 onClick={() => {
                   setCurrentLineIndex(idx);
@@ -531,6 +549,7 @@ export default function Publish() {
                   className="timestamp-input"
                   value={formatMs(line.timeMs)}
                   onChange={(e) => setLineTimestamp(idx, e.target.value)}
+                  onKeyDown={(e) => onTimestampKeyDown(e, idx)}
                   placeholder="mm:ss.xx"
                 />
                 <span className="line-text">{line.text}</span>
