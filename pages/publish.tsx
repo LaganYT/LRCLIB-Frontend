@@ -27,6 +27,7 @@ export default function Publish() {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
   const [audioDurationSec, setAudioDurationSec] = useState<number | null>(null);
+  const [lrcImport, setLrcImport] = useState<string>('');
 
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -210,6 +211,86 @@ export default function Publish() {
       .join('\n');
   };
 
+  const parseLrcToMs = (stamp: string): number | undefined => {
+    // Accept mm:ss or mm:ss.xx
+    const m = stamp.match(/^(\d{1,2}):(\d{2})(?:\.(\d{1,2}))?$/);
+    if (!m) return undefined;
+    const minutes = parseInt(m[1], 10);
+    const seconds = parseInt(m[2], 10);
+    const hundredths = m[3] ? parseInt(m[3].padEnd(2, '0'), 10) : 0;
+    if (seconds >= 60) return undefined;
+    return minutes * 60 * 1000 + seconds * 1000 + hundredths * 10;
+  };
+
+  const importLrc = (): void => {
+    const lines = lrcImport.split(/\r?\n/);
+    const imported: LyricLine[] = [];
+    let headerTitle: string | undefined;
+    let headerArtist: string | undefined;
+    let headerAlbum: string | undefined;
+    let headerLengthMs: number | undefined;
+
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (line.length === 0) continue;
+
+      const headerMatch = line.match(/^\[(ti|ar|al|length)\s*:(.*)]$/i);
+      if (headerMatch) {
+        const tag = headerMatch[1].toLowerCase();
+        const value = headerMatch[2].trim();
+        if (tag === 'ti') headerTitle = value;
+        else if (tag === 'ar') headerArtist = value;
+        else if (tag === 'al') headerAlbum = value;
+        else if (tag === 'length') {
+          const ms = parseLrcToMs(value);
+          if (ms != null) headerLengthMs = ms;
+        }
+        continue;
+      }
+
+      // Extract all timestamps, then remaining text
+      const tsRegex = /\[(\d{1,2}:\d{2}(?:\.\d{1,2})?)\]/g;
+      let timestamps: number[] = [];
+      let lastIdx = 0;
+      let m: RegExpExecArray | null;
+      while ((m = tsRegex.exec(line)) !== null) {
+        const ms = parseLrcToMs(m[1]);
+        if (ms != null) timestamps.push(ms);
+        lastIdx = tsRegex.lastIndex;
+      }
+      const text = line.slice(lastIdx).trim();
+      if (timestamps.length === 0) {
+        // No timestamp on this line; treat as plain lyric without time
+        if (text.length > 0) imported.push({ text });
+      } else {
+        for (const t of timestamps) {
+          imported.push({ text, timeMs: t });
+        }
+      }
+    }
+
+    if (imported.length === 0) {
+      setError('No LRC lines detected to import.');
+      return;
+    }
+
+    setLyricLines(imported);
+    setPlainLyrics(imported.map((l) => l.text).join('\n'));
+    setCurrentLineIndex(0);
+
+    if (!selectedSong && (headerTitle || headerArtist || headerAlbum)) {
+      setSelectedSong({
+        trackName: headerTitle || 'Unknown Title',
+        artistName: headerArtist || 'Unknown Artist',
+        albumName: headerAlbum || 'Unknown Album',
+        duration: Math.round((headerLengthMs ?? 0) / 1000) || 0,
+      });
+    }
+    if (headerLengthMs != null) setAudioDurationSec(Math.round(headerLengthMs / 1000));
+    setSuccess('Imported LRC successfully. You can refine timestamps or publish.');
+    setError('');
+  };
+
   const generatedLrc = useMemo(() => {
     const header: string[] = [];
     if (selectedSong?.trackName) header.push(`[ti:${selectedSong.trackName}]`);
@@ -370,6 +451,16 @@ export default function Publish() {
             className="textarea"
             rows={12}
           />
+
+          <h3>or Import LRC</h3>
+          <textarea
+            value={lrcImport}
+            onChange={(e) => setLrcImport(e.target.value)}
+            placeholder="Paste LRC here to populate timestamps and lines"
+            className="textarea"
+            rows={10}
+          />
+          <button onClick={importLrc} className="button">Import LRC</button>
         </div>
 
         <div className="editor-right">
