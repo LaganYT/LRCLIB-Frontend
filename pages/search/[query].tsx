@@ -3,7 +3,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaMusic } from 'react-icons/fa';
 import { LRCLibSearchResult, LRCLibSong } from '../../types';
 import Loading from '../../components/Loading';
 
@@ -62,6 +62,8 @@ export default function SearchResults() {
     setActiveTab('synced');
   };
 
+
+
   return (
     <div className="container">
       <div className="search-bar">
@@ -76,7 +78,15 @@ export default function SearchResults() {
         />
         <button onClick={handleSearch} className="button">Search</button>
       </div>
-      <h1>Search Results for "{query}"</h1>
+      <div className="search-header">
+        <h1>Search Results for "{query}"</h1>
+        <a href="/find-lyrics" className="find-lyrics-link">
+          <FaMusic />
+          Find Lyrics from Other Platforms
+        </a>
+      </div>
+      
+
       {loading && (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
           <Loading type="dots" size="large" />
@@ -148,6 +158,54 @@ export default function SearchResults() {
           </div>
         </div>
       )}
+      
+      <style jsx>{`
+
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .search-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .find-lyrics-link {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: var(--primary-color);
+          text-decoration: none;
+          padding: 8px 16px;
+          border: 1px solid var(--primary-color);
+          border-radius: 4px;
+          transition: all 0.3s ease;
+        }
+
+        .find-lyrics-link:hover {
+          background-color: var(--primary-color);
+          color: white;
+          text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+          .search-header {
+            flex-direction: column;
+            gap: 15px;
+            align-items: flex-start;
+          }
+        }
+      `}</style>
     </div>
   );
 }
