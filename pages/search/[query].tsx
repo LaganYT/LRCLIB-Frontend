@@ -80,10 +80,6 @@ export default function SearchResults() {
       </div>
       <div className="search-header">
         <h1>Search Results for "{query}"</h1>
-        <a href="/find-lyrics" className="find-lyrics-link">
-          <FaMusic />
-          Find Lyrics from Other Platforms
-        </a>
       </div>
       
 

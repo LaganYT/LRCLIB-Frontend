@@ -51,8 +51,6 @@ export default function Search() {
         >
           {isLoading ? <Loading type="dots" size="small" /> : 'Search'}
         </button>
-        <FaMicrophone className="icon" />
-        <FaCog className="icon" />
       </div>
     </div>
   );
