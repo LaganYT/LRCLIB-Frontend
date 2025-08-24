@@ -6,7 +6,7 @@ import { FaSearch, FaMusic, FaExternalLinkAlt, FaCopy, FaCheck } from 'react-ico
 import axios from 'axios';
 import { LRCLibSearchResult, LRCLibSong } from '../types';
 import Loading from '../components/Loading';
-import LyricsFinder from '../components/LyricsFinder';
+import EnhancedLyricsFinder from '../components/EnhancedLyricsFinder';
 
 interface LyricsResult {
   platform: string;
@@ -206,54 +206,14 @@ export default function FindLyrics() {
         </div>
       )}
 
-      {/* External Results */}
+      {/* Enhanced Lyrics Finder */}
       {showExternalResults && (
         <div className="results-section">
-          <h2>Found from External Platforms</h2>
-          {externalResults.length === 0 ? (
-            <p className="no-results">No lyrics found from any external platform.</p>
-          ) : (
-            <div className="results-grid">
-              {externalResults.map((result, index) => (
-                <div key={index} className="lyrics-card">
-                  <div className="lyrics-header">
-                    <h4>{result.platform}</h4>
-                    <div className="lyrics-actions">
-                      {result.url && (
-                        <a
-                          href={result.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="action-button"
-                          title="View on platform"
-                        >
-                          <FaExternalLinkAlt />
-                        </a>
-                      )}
-                      {result.lyrics && (
-                        <button
-                          onClick={() => copyLyrics(result.lyrics, result.platform)}
-                          className="action-button"
-                          title="Copy lyrics"
-                        >
-                          {copiedPlatform === result.platform ? <FaCheck /> : <FaCopy />}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="lyrics-content">
-                    {result.error ? (
-                      <p className="lyrics-error">{result.error}</p>
-                    ) : result.lyrics ? (
-                      <pre className="lyrics-text">{result.lyrics}</pre>
-                    ) : (
-                      <p className="no-lyrics">No lyrics available</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <h2>Enhanced Lyrics Search</h2>
+          <EnhancedLyricsFinder 
+            songName={songName}
+            artistName={artistName}
+          />
         </div>
       )}
 

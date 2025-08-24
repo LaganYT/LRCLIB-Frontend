@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/router';
 import axios from 'axios';
 import { SpotifyTrack, SpotifySearchResponse, SelectedSong } from '../types';
 import Loading from '../components/Loading';
@@ -14,6 +15,7 @@ interface LyricLine {
 }
 
 export default function Publish() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SpotifyTrack[]>([]);
   const [selectedSong, setSelectedSong] = useState<SelectedSong | null>(null);
@@ -63,6 +65,32 @@ export default function Publish() {
     };
     fetchAccessToken();
   }, []);
+
+  // Handle URL parameters for pre-filled data
+  useEffect(() => {
+    if (router.isReady) {
+      const { trackName, artistName, plainLyrics: urlPlainLyrics, syncedLyrics: urlSyncedLyrics } = router.query;
+      
+      if (trackName && artistName) {
+        setSelectedSong({
+          trackName: Array.isArray(trackName) ? trackName[0] : trackName,
+          artistName: Array.isArray(artistName) ? artistName[0] : artistName,
+          albumName: '',
+          duration: 0
+        });
+      }
+      
+      if (urlPlainLyrics) {
+        const lyrics = Array.isArray(urlPlainLyrics) ? urlPlainLyrics[0] : urlPlainLyrics;
+        setPlainLyrics(decodeURIComponent(lyrics));
+      }
+      
+      if (urlSyncedLyrics) {
+        const syncedLyrics = Array.isArray(urlSyncedLyrics) ? urlSyncedLyrics[0] : urlSyncedLyrics;
+        setLrcImport(decodeURIComponent(syncedLyrics));
+      }
+    }
+  }, [router.isReady, router.query]);
 
   const searchSpotify = async (): Promise<void> => {
     if (!accessToken) {
