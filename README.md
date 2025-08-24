@@ -1,127 +1,109 @@
-# LRCLIBPlusPlus
-A TypeScript-based website to publish lyrics to LRCLib.net
+# LRCLib Publisher
+
+A modern web application for publishing lyrics to [LRCLib.net](https://lrclib.net) with enhanced lyrics finding capabilities.
 
 ## Features
-- Search for lyrics dynamically using `/search/{query}`.
-- View plain and synced lyrics in a modern modal interface.
-- **Find lyrics from Musixmatch** via @mjba/lyrics with both regular and synced lyrics support.
-- Input synced lyrics.
-- Upload audio client-side (required).
-- Sync lyrics line by line with the uploaded audio.
-- Publish synced lyrics to lrclib.net.
-- Full TypeScript support with type safety.
-- API route for publishing to lrclib.net with challenge-response mechanism.
 
-## Instructions
+- **Search LRCLib Database**: Search for existing lyrics in the LRCLib database.
+- **Find Lyrics from Musixmatch**: Via @mjba/lyrics with both regular and synced lyrics support.
+- **Input synced lyrics**: Manually input synchronized lyrics with timestamps.
+- **Upload audio client-side**: Required for publishing to LRCLib.
+- **Modern UI**: Clean, responsive interface with real-time feedback.
+- **URL Extraction**: Extract lyrics directly from Musixmatch URLs.
+- **Search for lyrics dynamically** using `/search/{query}`.
+- **View plain and synced lyrics** in a modern modal interface.
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React, TypeScript
+- **Styling**: CSS with modern design patterns
+- **Lyrics API**: @mjba/lyrics for Musixmatch integration
+- **Deployment**: Vercel
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
 
 1. Clone the repository:
-   ```
-   git clone https://github.com/LaganYT/LRCLIBPlusPlus.git
-   cd LRCLIBPlusPlus
-   ```
-
-2. Install dependencies:
-   ```
-   npm install
-   ```
-
-3. Run the development server:
-   ```
-   npm run dev
-   ```
-
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## TypeScript
-
-This project is now fully written in TypeScript. To run type checking:
-
 ```bash
-npm run type-check
+git clone https://github.com/LaganYT/LRCLIBPlusPlus.git
+cd LRCLIBPlusPlus
 ```
 
-### Project Structure
+2. Install dependencies:
+```bash
+npm install
+```
 
-- `types/index.ts` - Type definitions for the entire project
-- `pages/api/publish.ts` - API route for publishing to lrclib.net
-- All React components are now `.tsx` files with proper type annotations
+3. Run the development server:
+```bash
+npm run dev
+```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Usage
 
-### Search for Lyrics
-1. Navigate to `/search`.
-2. Enter your search query in the input field and click "Search".
-3. View the results and click on a song to open a modal displaying plain and synced lyrics.
+### Find Lyrics Workflow
 
-### Enhanced Lyrics Management System
-1. **Navigate to `/find-lyrics`** or click "Find Lyrics" from the home page.
-2. Enter the song name and artist name in the search fields.
-3. The system will first search the LRCLib database for existing lyrics.
-4. If no results are found locally, it will automatically search multiple sources including Musixmatch and Google for both regular and synced lyrics.
-5. **Accept or Deny Lyrics**: For each result, you can:
-   - **Accept**: Click "Accept & Publish" to proceed to the publish page with pre-filled data
-   - **Deny**: Click "Deny & Search External" to search for alternative lyrics
-6. **External Search**: If you deny the lyrics, you can:
-   - Search directly on Musixmatch by clicking "Search on Musixmatch"
-   - Copy the URL from Musixmatch and paste it to extract lyrics
-   - The system will extract both regular and synced lyrics from the URL
-7. **Publish Workflow**: Once you accept lyrics, you'll be redirected to the publish page with all data pre-filled
-8. No API keys required - the service uses @mjba/lyrics for reliable lyrics fetching.
+1. **Navigate to Find Lyrics**: Go to `/find-lyrics` page
+2. **Enter Song Details**: Input song name and artist
+3. **Search**: The system will search both LRCLib database and Musixmatch
+4. **View Results**: Browse through available lyrics with preview
+5. **Accept Lyrics**: Choose lyrics to proceed to publishing
+
+### URL Extraction Workflow
+
+1. **Paste Musixmatch URL**: Use the URL input feature
+2. **Extract**: The system will extract both regular and synced lyrics from the URL
+3. **Publish Workflow**: Once you accept lyrics, you'll be redirected to the publish page with all data pre-filled
 
 ### Publish Lyrics
-1. Navigate to `/publish`.
-2. Enter the track details (track name, artist name, album name, etc.).
-3. Upload an audio file (required). The duration will be automatically obtained from the audio file.
-4. Use the "Sync Line" button to sync each line of lyrics with the audio.
-5. Once all lines are synced, click the "Publish" button to publish the synced lyrics to lrclib.net.
 
-## API Details
+1. **Fill Required Fields**: Track name, artist name, album name, duration
+2. **Add Lyrics**: Input plain lyrics and/or synced lyrics (LRC format)
+3. **Upload Audio**: Required for LRCLib publishing
+4. **Submit**: Publish to LRCLib.net
 
-### Publish a New Lyrics
-**POST** `/api/publish`
+## API Endpoints
 
-Publish new lyrics to the LRCLib database. This API can be called anonymously, and no registration is required.
+- `POST /api/lyrics` - Search for lyrics from Musixmatch
+- `POST /api/extract-lyrics` - Extract lyrics from Musixmatch URLs
+- `POST /api/publish` - Publish lyrics to LRCLib
 
-If both plain lyrics and synchronized lyrics are left empty, the track will be marked as instrumental.
+## Project Structure
 
-All previous revisions of the lyrics will still be kept when publishing lyrics for a track that already has existing lyrics.
-
-#### Obtaining the Publish Token
-
-Every `POST /api/publish` request must include a fresh, valid Publish Token in the `X-Publish-Token` header. Each Publish Token can only be used once.
-
-The Publish Token consists of two parts: a prefix and a nonce concatenated with a colon (`{prefix}:{nonce}`).
-
-To obtain a prefix, you need to make a request to the `POST /api/request-challenge` API. This will provide you with a fresh prefix string and a target string.
-
-To find a valid nonce, you must solve a proof-of-work cryptographic challenge using the provided prefix and target.
-
-#### Request Header
-
-| Header Name       | Required | Description                                                                 |
-|-------------------|----------|-----------------------------------------------------------------------------|
-| X-Publish-Token   | true     | A Publish Token that can be retrieved via solving a cryptographic challenge |
-
-#### Request JSON Body Parameters
-
-| Field         | Required | Type   | Description                          |
-|---------------|----------|--------|--------------------------------------|
-| trackName     | true     | string | Title of the track                   |
-| artistName    | true     | string | Track's artist name                  |
-| albumName     | true     | string | Track's album name                   |
-| duration      | true     | number | Track's duration (obtained from the audio file) |
-| plainLyrics   | true     | string | Plain lyrics for the track           |
-| syncedLyrics  | true     | string | Synchronized lyrics for the track    |
-
-#### Response
-
-**Success Response**: `201 Created`
-
-**Failed Response (Incorrect Publish Token)**:
-```json
-{
-  "code": 400,
-  "name": "IncorrectPublishTokenError",
-  "message": "The provided publish token is incorrect"
-}
 ```
+LRCLIBPlusPlus/
+├── components/          # React components
+├── pages/              # Next.js pages and API routes
+├── styles/             # Global CSS styles
+├── types/              # TypeScript type definitions
+├── utils/              # Utility functions
+└── public/             # Static assets
+```
+
+## Key Features
+
+- **Type Safety**: Full TypeScript support with centralized type definitions
+- **Error Handling**: Comprehensive error handling across all API endpoints
+- **Code Reusability**: Utility functions for common operations
+- **Modern Architecture**: Clean separation of concerns and modular design
+- **No API Keys Required**: Uses @mjba/lyrics for reliable lyrics fetching
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+This project is licensed under the Unlicense - see the [LICENSE](LICENSE) file for details.

@@ -1,30 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { LyricsClient } from '@mjba/lyrics';
-
-interface LyricsResult {
-  platform: string;
-  lyrics: string;
-  syncedLyrics?: string;
-  url?: string;
-  error?: string;
-  songInfo?: {
-    title?: string;
-    artist?: string;
-  };
-}
-
-interface ApiResponse {
-  success: boolean;
-  results: LyricsResult[];
-  error?: string;
-}
+import { LyricsResult, LyricsApiResponse } from '../../types';
+import { convertToLRCFormat, buildMusixmatchSearchUrl } from '../../utils/lyrics';
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ApiResponse>
+  res: NextApiResponse<LyricsApiResponse>
 ) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, results: [], error: 'Method not allowed' });
+    return res.status(405).json({ 
+      success: false, 
+      results: [], 
+      error: 'Method not allowed' 
+    });
   }
 
   const { song, artist } = req.body;
@@ -37,11 +25,9 @@ export default async function handler(
     });
   }
 
-  const results: LyricsResult[] = [];
-
   try {
-    // Try Musixmatch source
     const musixmatchResult = await fetchMusixmatchLyrics(song, artist);
+    const results: LyricsResult[] = [];
     
     if (musixmatchResult) {
       results.push(musixmatchResult);
@@ -49,7 +35,7 @@ export default async function handler(
       results.push({
         platform: 'Musixmatch',
         lyrics: '',
-        error: 'Failed to fetch lyrics'
+        error: 'No lyrics found'
       });
     }
 
@@ -65,18 +51,20 @@ export default async function handler(
     res.status(500).json({
       success: false,
       results: [],
-      error: 'Failed to fetch lyrics from any platform'
+      error: 'Failed to fetch lyrics'
     });
   }
 }
 
+/**
+ * Fetches lyrics from Musixmatch using the @mjba/lyrics package
+ */
 async function fetchMusixmatchLyrics(song: string, artist: string): Promise<LyricsResult | null> {
   try {
-    // Disable caching for serverless environment
     const client = new LyricsClient();
     const searchQuery = `${song} ${artist}`;
 
-    // Try to get both regular and synced lyrics
+    // Fetch both regular and synced lyrics in parallel
     const [regularResult, syncedResult] = await Promise.allSettled([
       client.searchAndGetLyrics(searchQuery),
       client.searchAndGetSyncedLyrics(searchQuery)
@@ -98,13 +86,7 @@ async function fetchMusixmatchLyrics(song: string, artist: string): Promise<Lyri
     // Process synced lyrics result
     if (syncedResult.status === 'fulfilled' && syncedResult.value.success) {
       if (syncedResult.value.hasTimestamps && syncedResult.value.syncedLyrics) {
-        // Convert synced lyrics to LRC format
-        syncedLyrics = syncedResult.value.syncedLyrics
-          .map(lyric => {
-            const timestamp = `[${lyric.time.minutes.toString().padStart(2, '0')}:${lyric.time.seconds.toString().padStart(2, '0')}.${lyric.time.ms.toString().padStart(3, '0')}]`;
-            return `${timestamp}${lyric.text}`;
-          })
-          .join('\n');
+        syncedLyrics = convertToLRCFormat(syncedResult.value.syncedLyrics);
       }
       
       // Update song info if not already set
@@ -122,7 +104,7 @@ async function fetchMusixmatchLyrics(song: string, artist: string): Promise<Lyri
         lyrics,
         syncedLyrics: syncedLyrics || undefined,
         songInfo,
-        url: `https://www.musixmatch.com/search/${encodeURIComponent(song)}%20${encodeURIComponent(artist)}`
+        url: buildMusixmatchSearchUrl(song, artist)
       };
     }
 

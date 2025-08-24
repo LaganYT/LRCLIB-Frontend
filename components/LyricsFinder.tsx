@@ -2,23 +2,12 @@ import React, { useState } from 'react';
 import { FaMusic, FaExternalLinkAlt, FaCopy, FaCheck, FaTimes, FaLink, FaArrowRight } from 'react-icons/fa';
 import { useRouter } from 'next/router';
 import Loading from './Loading';
-
-interface LyricsResult {
-  platform: string;
-  lyrics: string;
-  syncedLyrics?: string;
-  url?: string;
-  error?: string;
-  songInfo?: {
-    title?: string;
-    artist?: string;
-  };
-}
+import { LyricsResult } from '../types';
 
 interface EnhancedLyricsFinderProps {
   songName: string;
   artistName: string;
-  onLyricsAccepted?: (lyrics: string, syncedLyrics?: string, songInfo?: any) => void;
+  onLyricsAccepted?: (lyrics: string, syncedLyrics?: string, songInfo?: { title?: string; artist?: string }) => void;
 }
 
 export default function EnhancedLyricsFinder({ songName, artistName, onLyricsAccepted }: EnhancedLyricsFinderProps) {
@@ -46,7 +35,7 @@ export default function EnhancedLyricsFinder({ songName, artistName, onLyricsAcc
     setExtractedLyrics(null);
 
     try {
-      const response = await fetch('/api/lyrics-enhanced', {
+      const response = await fetch('/api/lyrics', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,7 +135,7 @@ export default function EnhancedLyricsFinder({ songName, artistName, onLyricsAcc
 
   const openMusixmatchSearch = () => {
     const searchQuery = `${songName} ${artistName}`.replace(/\s+/g, '%20');
-    window.open(`https://www.musixmatch.com/search/${searchQuery}`, '_blank');
+    window.open(`https://www.musixmatch.com/search?query=${searchQuery}`, '_blank');
   };
 
   return (

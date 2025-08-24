@@ -4,16 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { FaSearch, FaMusic, FaExternalLinkAlt, FaCopy, FaCheck } from 'react-icons/fa';
 import axios from 'axios';
-import { LRCLibSearchResult, LRCLibSong } from '../types';
+import { LRCLibSearchResult, LRCLibSong, LyricsResult } from '../types';
 import Loading from '../components/Loading';
 import LyricsFinder from '../components/LyricsFinder';
-
-interface LyricsResult {
-  platform: string;
-  lyrics: string;
-  url?: string;
-  error?: string;
-}
 
 export default function FindLyrics() {
   const router = useRouter();

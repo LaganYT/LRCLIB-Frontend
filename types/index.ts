@@ -62,6 +62,25 @@ export interface LRCLibPublishResponse {
   data?: any;
 }
 
+// Lyrics API Types
+export interface LyricsResult {
+  platform: string;
+  lyrics: string;
+  syncedLyrics?: string;
+  url?: string;
+  error?: string;
+  songInfo?: {
+    title?: string;
+    artist?: string;
+  };
+}
+
+export interface LyricsApiResponse {
+  success: boolean;
+  results: LyricsResult[];
+  error?: string;
+}
+
 // Component Props Types
 export interface AppProps {
   Component: React.ComponentType<any>;
