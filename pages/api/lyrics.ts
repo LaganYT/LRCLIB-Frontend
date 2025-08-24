@@ -40,10 +40,7 @@ export default async function handler(
   const results: LyricsResult[] = [];
 
   try {
-    // Disable caching entirely for serverless environments
-    const client = new LyricsClient({
-      enableCache: false // Disable cache to avoid filesystem issues in serverless
-    });
+    const client = new LyricsClient();
     const searchQuery = `${song} ${artist}`;
 
     // Try to get both regular and synced lyrics
