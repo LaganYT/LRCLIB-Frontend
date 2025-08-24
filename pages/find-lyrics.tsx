@@ -6,7 +6,7 @@ import { FaSearch, FaMusic, FaExternalLinkAlt, FaCopy, FaCheck } from 'react-ico
 import axios from 'axios';
 import { LRCLibSearchResult, LRCLibSong } from '../types';
 import Loading from '../components/Loading';
-import EnhancedLyricsFinder from '../components/EnhancedLyricsFinder';
+import LyricsFinder from '../components/LyricsFinder';
 
 interface LyricsResult {
   platform: string;
@@ -206,11 +206,11 @@ export default function FindLyrics() {
         </div>
       )}
 
-      {/* Enhanced Lyrics Finder */}
+      {/* External Results */}
       {showExternalResults && (
         <div className="results-section">
           <h2>Enhanced Lyrics Search</h2>
-          <EnhancedLyricsFinder 
+          <LyricsFinder 
             songName={songName}
             artistName={artistName}
           />

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { LyricsClient } from '@mjba/lyrics';
+import lyricsFinder from 'lyrics-finder';
 
 interface LyricsResult {
   platform: string;
@@ -40,74 +41,26 @@ export default async function handler(
   const results: LyricsResult[] = [];
 
   try {
-    const client = new LyricsClient();
-    const searchQuery = `${song} ${artist}`;
+    // Try multiple sources in parallel
+    const promises = [
+      fetchMusixmatchLyrics(song, artist),
+      fetchGoogleLyrics(song, artist)
+    ];
 
-    // Try to get both regular and synced lyrics
-    const [regularResult, syncedResult] = await Promise.allSettled([
-      client.searchAndGetLyrics(searchQuery),
-      client.searchAndGetSyncedLyrics(searchQuery)
-    ]);
-
-    // Process regular lyrics result
-    if (regularResult.status === 'fulfilled' && regularResult.value.success && regularResult.value.lyrics) {
-      results.push({
-        platform: 'Musixmatch (via @mjba/lyrics)',
-        lyrics: regularResult.value.lyrics,
-        songInfo: {
-          title: regularResult.value.songInfo?.title,
-          artist: regularResult.value.songInfo?.artist
-        },
-        url: `https://www.musixmatch.com/search/${encodeURIComponent(song)}%20${encodeURIComponent(artist)}`
-      });
-    } else if (regularResult.status === 'rejected') {
-      results.push({
-        platform: 'Musixmatch (via @mjba/lyrics)',
-        lyrics: '',
-        error: 'Failed to fetch regular lyrics'
-      });
-    }
-
-    // Process synced lyrics result
-    if (syncedResult.status === 'fulfilled' && syncedResult.value.success) {
-      if (syncedResult.value.hasTimestamps && syncedResult.value.syncedLyrics) {
-        // Convert synced lyrics to LRC format
-        const lrcLyrics = syncedResult.value.syncedLyrics
-          .map(lyric => {
-            const timestamp = `[${lyric.time.minutes.toString().padStart(2, '0')}:${lyric.time.seconds.toString().padStart(2, '0')}.${lyric.time.ms.toString().padStart(3, '0')}]`;
-            return `${timestamp}${lyric.text}`;
-          })
-          .join('\n');
-
+    const responses = await Promise.allSettled(promises);
+    
+    responses.forEach((response, index) => {
+      const platforms = ['Musixmatch', 'Google (via lyrics-finder)'];
+      if (response.status === 'fulfilled' && response.value) {
+        results.push(response.value);
+      } else {
         results.push({
-          platform: 'Musixmatch (Synced)',
-          lyrics: syncedResult.value.lyrics || '',
-          syncedLyrics: lrcLyrics,
-          songInfo: {
-            title: syncedResult.value.songInfo?.title,
-            artist: syncedResult.value.songInfo?.artist
-          },
-          url: `https://www.musixmatch.com/search/${encodeURIComponent(song)}%20${encodeURIComponent(artist)}`
-        });
-      } else if (syncedResult.value.lyrics) {
-        // Fallback to regular lyrics if synced not available
-        results.push({
-          platform: 'Musixmatch (Fallback)',
-          lyrics: syncedResult.value.lyrics,
-          songInfo: {
-            title: syncedResult.value.songInfo?.title,
-            artist: syncedResult.value.songInfo?.artist
-          },
-          url: `https://www.musixmatch.com/search/${encodeURIComponent(song)}%20${encodeURIComponent(artist)}`
+          platform: platforms[index],
+          lyrics: '',
+          error: 'Failed to fetch lyrics'
         });
       }
-    } else if (syncedResult.status === 'rejected') {
-      results.push({
-        platform: 'Musixmatch (Synced)',
-        lyrics: '',
-        error: 'Failed to fetch synced lyrics'
-      });
-    }
+    });
 
     const successfulResults = results.filter(r => r.lyrics && !r.error);
     
@@ -121,7 +74,96 @@ export default async function handler(
     res.status(500).json({
       success: false,
       results: [],
-      error: 'Failed to fetch lyrics from Musixmatch'
+      error: 'Failed to fetch lyrics from any platform'
     });
+  }
+}
+
+async function fetchMusixmatchLyrics(song: string, artist: string): Promise<LyricsResult | null> {
+  try {
+    // Disable caching for serverless environment
+    const client = new LyricsClient({
+      enableCache: false
+    });
+    const searchQuery = `${song} ${artist}`;
+
+    // Try to get both regular and synced lyrics
+    const [regularResult, syncedResult] = await Promise.allSettled([
+      client.searchAndGetLyrics(searchQuery),
+      client.searchAndGetSyncedLyrics(searchQuery)
+    ]);
+
+    let lyrics = '';
+    let syncedLyrics = '';
+    let songInfo = {};
+
+    // Process regular lyrics result
+    if (regularResult.status === 'fulfilled' && regularResult.value.success && regularResult.value.lyrics) {
+      lyrics = regularResult.value.lyrics;
+      songInfo = {
+        title: regularResult.value.songInfo?.title,
+        artist: regularResult.value.songInfo?.artist
+      };
+    }
+
+    // Process synced lyrics result
+    if (syncedResult.status === 'fulfilled' && syncedResult.value.success) {
+      if (syncedResult.value.hasTimestamps && syncedResult.value.syncedLyrics) {
+        // Convert synced lyrics to LRC format
+        syncedLyrics = syncedResult.value.syncedLyrics
+          .map(lyric => {
+            const timestamp = `[${lyric.time.minutes.toString().padStart(2, '0')}:${lyric.time.seconds.toString().padStart(2, '0')}.${lyric.time.ms.toString().padStart(3, '0')}]`;
+            return `${timestamp}${lyric.text}`;
+          })
+          .join('\n');
+      }
+      
+      // Update song info if not already set
+      if (!songInfo.title) {
+        songInfo = {
+          title: syncedResult.value.songInfo?.title,
+          artist: syncedResult.value.songInfo?.artist
+        };
+      }
+    }
+
+    if (lyrics || syncedLyrics) {
+      return {
+        platform: 'Musixmatch (via @mjba/lyrics)',
+        lyrics,
+        syncedLyrics: syncedLyrics || undefined,
+        songInfo,
+        url: `https://www.musixmatch.com/search/${encodeURIComponent(song)}%20${encodeURIComponent(artist)}`
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Musixmatch fetch error:', error);
+    return null;
+  }
+}
+
+async function fetchGoogleLyrics(song: string, artist: string): Promise<LyricsResult | null> {
+  try {
+    // Use lyrics-finder to search Google
+    const lyrics = await lyricsFinder(artist, song);
+    
+    if (lyrics && lyrics !== "Lyrics not found." && lyrics.length > 100) {
+      return {
+        platform: 'Google (via lyrics-finder)',
+        lyrics: lyrics,
+        songInfo: {
+          title: song,
+          artist: artist
+        },
+        url: `https://www.google.com/search?q=${encodeURIComponent(`${song} ${artist} lyrics`)}`
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Google lyrics fetch error:', error);
+    return null;
   }
 }

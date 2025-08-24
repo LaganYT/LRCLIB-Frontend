@@ -1,26 +1,37 @@
 import React, { useState } from 'react';
-import { FaMusic, FaExternalLinkAlt, FaCopy, FaCheck } from 'react-icons/fa';
+import { FaMusic, FaExternalLinkAlt, FaCopy, FaCheck, FaTimes, FaLink, FaArrowRight } from 'react-icons/fa';
+import { useRouter } from 'next/router';
 import Loading from './Loading';
 
 interface LyricsResult {
   platform: string;
   lyrics: string;
+  syncedLyrics?: string;
   url?: string;
   error?: string;
+  songInfo?: {
+    title?: string;
+    artist?: string;
+  };
 }
 
-interface LyricsFinderProps {
+interface EnhancedLyricsFinderProps {
   songName: string;
   artistName: string;
-  onLyricsFound?: (lyrics: string) => void;
+  onLyricsAccepted?: (lyrics: string, syncedLyrics?: string, songInfo?: any) => void;
 }
 
-export default function LyricsFinder({ songName, artistName, onLyricsFound }: LyricsFinderProps) {
+export default function EnhancedLyricsFinder({ songName, artistName, onLyricsAccepted }: EnhancedLyricsFinderProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<LyricsResult[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedLyrics, setExtractedLyrics] = useState<LyricsResult | null>(null);
 
   const findLyrics = async () => {
     if (!songName.trim() || !artistName.trim()) {
@@ -32,9 +43,10 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
     setError(null);
     setResults([]);
     setShowResults(false);
+    setExtractedLyrics(null);
 
     try {
-      const response = await fetch('/api/lyrics', {
+      const response = await fetch('/api/lyrics-enhanced', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,14 +84,73 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
     }
   };
 
-  const useLyrics = (lyrics: string) => {
-    if (onLyricsFound) {
-      onLyricsFound(lyrics);
+  const acceptLyrics = (result: LyricsResult) => {
+    if (onLyricsAccepted) {
+      onLyricsAccepted(result.lyrics, result.syncedLyrics, result.songInfo);
+    } else {
+      // Navigate to publish page with pre-filled data
+      const params = new URLSearchParams({
+        trackName: result.songInfo?.title || songName,
+        artistName: result.songInfo?.artist || artistName,
+        plainLyrics: result.lyrics,
+        syncedLyrics: result.syncedLyrics || ''
+      });
+      router.push(`/publish?${params.toString()}`);
     }
   };
 
+  const denyLyrics = () => {
+    setShowUrlInput(true);
+  };
+
+  const extractFromUrl = async () => {
+    if (!urlInput.trim()) {
+      setError('Please enter a Musixmatch URL');
+      return;
+    }
+
+    setIsExtracting(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/extract-lyrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: urlInput.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setExtractedLyrics({
+          platform: 'Musixmatch (Extracted)',
+          lyrics: data.lyrics || '',
+          syncedLyrics: data.syncedLyrics,
+          songInfo: data.songInfo,
+          url: urlInput.trim()
+        });
+        setShowUrlInput(false);
+      } else {
+        setError(data.error || 'Failed to extract lyrics from URL');
+      }
+    } catch (err) {
+      setError('Failed to extract lyrics from URL');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const openMusixmatchSearch = () => {
+    const searchQuery = `${songName} ${artistName}`.replace(/\s+/g, '%20');
+    window.open(`https://www.musixmatch.com/search/${searchQuery}`, '_blank');
+  };
+
   return (
-    <div className="lyrics-finder">
+    <div className="enhanced-lyrics-finder">
       <button
         onClick={findLyrics}
         disabled={isLoading || !songName.trim() || !artistName.trim()}
@@ -106,7 +177,29 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
         <div className="lyrics-results">
           <h3>Lyrics Results</h3>
           {results.length === 0 ? (
-            <p className="no-results">No lyrics found from any platform.</p>
+            <div className="no-results">
+              <p>No lyrics found from Musixmatch.</p>
+              <div className="external-search-section">
+                <p>Try searching on Musixmatch directly:</p>
+                <button 
+                  onClick={openMusixmatchSearch}
+                  className="button external-search-button"
+                >
+                  <FaExternalLinkAlt />
+                  Search on Musixmatch
+                </button>
+                <p className="instruction-text">
+                  After finding the lyrics, copy the URL and paste it below to extract them.
+                </p>
+                <button 
+                  onClick={() => setShowUrlInput(true)}
+                  className="button url-input-button"
+                >
+                  <FaLink />
+                  Paste Musixmatch URL
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="results-grid">
               {results.map((result, index) => (
@@ -126,22 +219,13 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
                         </a>
                       )}
                       {result.lyrics && (
-                        <>
-                          <button
-                            onClick={() => copyLyrics(result.lyrics, result.platform)}
-                            className="action-button"
-                            title="Copy lyrics"
-                          >
-                            {copiedPlatform === result.platform ? <FaCheck /> : <FaCopy />}
-                          </button>
-                          <button
-                            onClick={() => useLyrics(result.lyrics)}
-                            className="action-button use-button"
-                            title="Use these lyrics"
-                          >
-                            Use
-                          </button>
-                        </>
+                        <button
+                          onClick={() => copyLyrics(result.lyrics, result.platform)}
+                          className="action-button"
+                          title="Copy lyrics"
+                        >
+                          {copiedPlatform === result.platform ? <FaCheck /> : <FaCopy />}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -154,6 +238,23 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
                       <p className="no-lyrics">No lyrics available</p>
                     )}
                   </div>
+                  <div className="lyrics-actions-bottom">
+                    <button
+                      onClick={() => acceptLyrics(result)}
+                      className="accept-button"
+                      disabled={!result.lyrics}
+                    >
+                      <FaCheck />
+                      Accept & Publish
+                    </button>
+                    <button
+                      onClick={denyLyrics}
+                      className="deny-button"
+                    >
+                      <FaTimes />
+                      Deny & Search External
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -161,8 +262,95 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
         </div>
       )}
 
+      {showUrlInput && (
+        <div className="url-input-section">
+          <h3>Extract Lyrics from Musixmatch URL</h3>
+          <div className="url-input-container">
+            <input
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder="Paste Musixmatch URL here (e.g., https://www.musixmatch.com/lyrics/artist/song)"
+              className="url-input"
+              disabled={isExtracting}
+            />
+            <button
+              onClick={extractFromUrl}
+              disabled={isExtracting || !urlInput.trim()}
+              className="extract-button"
+            >
+              {isExtracting ? (
+                <>
+                  <Loading type="dots" size="small" />
+                  Extracting...
+                </>
+              ) : (
+                <>
+                  <FaArrowRight />
+                  Extract Lyrics
+                </>
+              )}
+            </button>
+          </div>
+          <button
+            onClick={() => setShowUrlInput(false)}
+            className="cancel-button"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {extractedLyrics && (
+        <div className="extracted-lyrics-section">
+          <h3>Extracted Lyrics</h3>
+          <div className="lyrics-card">
+            <div className="lyrics-header">
+              <h4>{extractedLyrics.platform}</h4>
+              <div className="lyrics-actions">
+                <button
+                  onClick={() => copyLyrics(extractedLyrics.lyrics, extractedLyrics.platform)}
+                  className="action-button"
+                  title="Copy lyrics"
+                >
+                  {copiedPlatform === extractedLyrics.platform ? <FaCheck /> : <FaCopy />}
+                </button>
+              </div>
+            </div>
+            <div className="lyrics-content">
+              <pre className="lyrics-text">{extractedLyrics.lyrics}</pre>
+              {extractedLyrics.syncedLyrics && (
+                <div className="synced-lyrics-section">
+                  <h5>Synced Lyrics (LRC Format)</h5>
+                  <pre className="synced-lyrics-text">{extractedLyrics.syncedLyrics}</pre>
+                </div>
+              )}
+            </div>
+            <div className="lyrics-actions-bottom">
+              <button
+                onClick={() => acceptLyrics(extractedLyrics)}
+                className="accept-button"
+              >
+                <FaCheck />
+                Accept & Publish
+              </button>
+              <button
+                onClick={() => {
+                  setExtractedLyrics(null);
+                  setShowUrlInput(true);
+                }}
+                className="deny-button"
+              >
+                <FaTimes />
+                Try Different URL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
-        .lyrics-finder {
+        .enhanced-lyrics-finder {
           margin: 20px 0;
         }
 
@@ -212,6 +400,39 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
           color: var(--text-color);
           opacity: 0.7;
           font-style: italic;
+        }
+
+        .external-search-section {
+          margin-top: 20px;
+          padding: 20px;
+          background-color: var(--card-background);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+        }
+
+        .external-search-button, .url-input-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 10px 0;
+          background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .external-search-button:hover, .url-input-button:hover {
+          background: linear-gradient(135deg, #ee5a24, #ff6b6b);
+          transform: translateY(-1px);
+        }
+
+        .instruction-text {
+          margin: 15px 0;
+          font-size: 0.9rem;
+          opacity: 0.8;
         }
 
         .results-grid {
@@ -273,18 +494,6 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
           border-color: var(--primary-color);
         }
 
-        .action-button.use-button {
-          background-color: var(--primary-color);
-          color: white;
-          border-color: var(--primary-color);
-          font-weight: 600;
-        }
-
-        .action-button.use-button:hover {
-          background-color: var(--secondary-color);
-          border-color: var(--secondary-color);
-        }
-
         .lyrics-content {
           padding: 15px;
           max-height: 300px;
@@ -303,6 +512,30 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
           border-radius: 4px;
         }
 
+        .synced-lyrics-section {
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 1px solid var(--border-color);
+        }
+
+        .synced-lyrics-section h5 {
+          color: var(--primary-color);
+          margin-bottom: 10px;
+        }
+
+        .synced-lyrics-text {
+          white-space: pre-wrap;
+          font-family: 'Courier New', monospace;
+          font-size: 12px;
+          line-height: 1.4;
+          color: var(--text-color);
+          margin: 0;
+          background-color: rgba(30, 144, 255, 0.1);
+          padding: 10px;
+          border-radius: 4px;
+          border-left: 3px solid var(--primary-color);
+        }
+
         .lyrics-error {
           color: #ff6b6b;
           font-style: italic;
@@ -314,6 +547,136 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
           opacity: 0.7;
           font-style: italic;
           margin: 0;
+        }
+
+        .lyrics-actions-bottom {
+          display: flex;
+          gap: 10px;
+          padding: 15px;
+          border-top: 1px solid var(--border-color);
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .accept-button, .deny-button {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 10px 15px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .accept-button {
+          background: linear-gradient(135deg, #28a745, #20c997);
+          color: white;
+        }
+
+        .accept-button:hover:not(:disabled) {
+          background: linear-gradient(135deg, #20c997, #28a745);
+          transform: translateY(-1px);
+        }
+
+        .accept-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .deny-button {
+          background: linear-gradient(135deg, #dc3545, #fd7e14);
+          color: white;
+        }
+
+        .deny-button:hover {
+          background: linear-gradient(135deg, #fd7e14, #dc3545);
+          transform: translateY(-1px);
+        }
+
+        .url-input-section {
+          margin-top: 20px;
+          padding: 20px;
+          background-color: var(--card-background);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          animation: slideDown 0.3s ease;
+        }
+
+        .url-input-section h3 {
+          color: var(--primary-color);
+          margin-bottom: 15px;
+        }
+
+        .url-input-container {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 15px;
+        }
+
+        .url-input {
+          flex: 1;
+          padding: 12px;
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          background: transparent;
+          color: var(--text-color);
+          font-size: 14px;
+        }
+
+        .url-input:focus {
+          outline: none;
+          border-color: var(--primary-color);
+        }
+
+        .extract-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+          color: white;
+          border: none;
+          padding: 12px 20px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .extract-button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+        }
+
+        .extract-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .cancel-button {
+          background: none;
+          border: 1px solid var(--border-color);
+          color: var(--text-color);
+          padding: 8px 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .cancel-button:hover {
+          background-color: var(--border-color);
+        }
+
+        .extracted-lyrics-section {
+          margin-top: 20px;
+          animation: slideDown 0.3s ease;
+        }
+
+        .extracted-lyrics-section h3 {
+          color: var(--primary-color);
+          margin-bottom: 15px;
         }
 
         @keyframes slideDown {
@@ -352,6 +715,14 @@ export default function LyricsFinder({ songName, artistName, onLyricsFound }: Ly
           .lyrics-actions {
             width: 100%;
             justify-content: flex-end;
+          }
+
+          .lyrics-actions-bottom {
+            flex-direction: column;
+          }
+
+          .url-input-container {
+            flex-direction: column;
           }
         }
       `}</style>
