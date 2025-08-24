@@ -4,7 +4,7 @@ A TypeScript-based website to publish lyrics to LRCLib.net
 ## Features
 - Search for lyrics dynamically using `/search/{query}`.
 - View plain and synced lyrics in a modern modal interface.
-- **Find lyrics from multiple sources** including Musixmatch (via @mjba/lyrics) and Google (via lyrics-finder) for maximum coverage with both regular and synced lyrics support.
+- **Find lyrics from Musixmatch** via @mjba/lyrics with both regular and synced lyrics support.
 - Input synced lyrics.
 - Upload audio client-side (required).
 - Sync lyrics line by line with the uploaded audio.
@@ -66,7 +66,7 @@ npm run type-check
    - Copy the URL from Musixmatch and paste it to extract lyrics
    - The system will extract both regular and synced lyrics from the URL
 7. **Publish Workflow**: Once you accept lyrics, you'll be redirected to the publish page with all data pre-filled
-8. No API keys required - the service uses multiple packages (@mjba/lyrics and lyrics-finder) for maximum coverage and reliability.
+8. No API keys required - the service uses @mjba/lyrics for reliable lyrics fetching.
 
 ### Publish Lyrics
 1. Navigate to `/publish`.

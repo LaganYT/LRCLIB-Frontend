@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { LyricsClient } from '@mjba/lyrics';
-import lyricsFinder from 'lyrics-finder';
 
 interface LyricsResult {
   platform: string;
@@ -41,26 +40,18 @@ export default async function handler(
   const results: LyricsResult[] = [];
 
   try {
-    // Try multiple sources in parallel
-    const promises = [
-      fetchMusixmatchLyrics(song, artist),
-      fetchGoogleLyrics(song, artist)
-    ];
-
-    const responses = await Promise.allSettled(promises);
+    // Try Musixmatch source
+    const musixmatchResult = await fetchMusixmatchLyrics(song, artist);
     
-    responses.forEach((response, index) => {
-      const platforms = ['Musixmatch', 'Google (via lyrics-finder)'];
-      if (response.status === 'fulfilled' && response.value) {
-        results.push(response.value);
-      } else {
-        results.push({
-          platform: platforms[index],
-          lyrics: '',
-          error: 'Failed to fetch lyrics'
-        });
-      }
-    });
+    if (musixmatchResult) {
+      results.push(musixmatchResult);
+    } else {
+      results.push({
+        platform: 'Musixmatch',
+        lyrics: '',
+        error: 'Failed to fetch lyrics'
+      });
+    }
 
     const successfulResults = results.filter(r => r.lyrics && !r.error);
     
@@ -144,26 +135,4 @@ async function fetchMusixmatchLyrics(song: string, artist: string): Promise<Lyri
   }
 }
 
-async function fetchGoogleLyrics(song: string, artist: string): Promise<LyricsResult | null> {
-  try {
-    // Use lyrics-finder to search Google
-    const lyrics = await lyricsFinder(artist, song);
-    
-    if (lyrics && lyrics !== "Lyrics not found." && lyrics.length > 100) {
-      return {
-        platform: 'Google (via lyrics-finder)',
-        lyrics: lyrics,
-        songInfo: {
-          title: song,
-          artist: artist
-        },
-        url: `https://www.google.com/search?q=${encodeURIComponent(`${song} ${artist} lyrics`)}`
-      };
-    }
 
-    return null;
-  } catch (error) {
-    console.error('Google lyrics fetch error:', error);
-    return null;
-  }
-}
