@@ -58,7 +58,6 @@ export default function Home() {
       </div>
       <div className="links">
         <a href="https://lrclib.net/">Original Site</a>
-        <a href="/find-lyrics">Find Lyrics</a>
         <a href="/publish">Publish Lyrics</a>
         <a href="https://github.com/LaganYT/LRCLIBPlusPlus">Source code</a>
         <a href="https://lrclib.net/docs">API Documentation</a>

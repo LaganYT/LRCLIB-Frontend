@@ -1,5 +1,3 @@
-import type { SongInfo } from '@mjba/lyrics';
-
 // Spotify API Types
 export interface SpotifyArtist {
   name: string;
@@ -71,7 +69,10 @@ export interface LyricsResult {
   syncedLyrics?: string;
   url?: string;
   error?: string;
-  songInfo?: SongInfo; // Use the package's SongInfo type
+  songInfo?: {
+    title?: string;
+    artist?: string;
+  };
 }
 
 export interface LyricsApiResponse {
