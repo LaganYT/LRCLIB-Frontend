@@ -73,9 +73,7 @@ export default async function handler(
 async function fetchMusixmatchLyrics(song: string, artist: string): Promise<LyricsResult | null> {
   try {
     // Disable caching for serverless environment
-    const client = new LyricsClient({
-      enableCache: false
-    });
+    const client = new LyricsClient();
     const searchQuery = `${song} ${artist}`;
 
     // Try to get both regular and synced lyrics
