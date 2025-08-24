@@ -45,9 +45,7 @@ export default async function handler(
     const decodedSong = decodeURIComponent(song.replace(/-/g, ' '));
 
     // Disable caching for serverless environment
-    const client = new LyricsClient({
-      enableCache: false
-    });
+    const client = new LyricsClient();
 
     // Try to get both regular and synced lyrics
     const [regularResult, syncedResult] = await Promise.allSettled([
