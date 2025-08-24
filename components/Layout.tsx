@@ -15,7 +15,7 @@ export default function Layout({ children }: LayoutProps) {
         <nav className="navbar">
           <div className="navbar-left">
             <Link href="/" className="navbar-brand">
-              LRCLIB-Frontend
+              LRCLIBPlusPlus
             </Link>
           </div>
           <div className="navbar-center">
@@ -30,7 +30,7 @@ export default function Layout({ children }: LayoutProps) {
             <a href="https://lrclib.net/" className="navbar-link" target="_blank" rel="noopener noreferrer">
               Original Site
             </a>
-            <a href="https://github.com/LaganYT/LRCLIB-Frontend" className="navbar-link" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/LaganYT/LRCLIBPlusPlus" className="navbar-link" target="_blank" rel="noopener noreferrer">
               GitHub
             </a>
           </div>
@@ -44,7 +44,7 @@ export default function Layout({ children }: LayoutProps) {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-section">
-            <h4>LRCLIB-Frontend</h4>
+            <h4>LRCLIBPlusPlus</h4>
             <p>A TypeScript-based website to publish lyrics to LRCLib.net</p>
           </div>
           <div className="footer-section">
@@ -64,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
               <a href="https://lrclib.net/docs" target="_blank" rel="noopener noreferrer">
                 API Documentation
               </a>
-              <a href="https://github.com/LaganYT/LRCLIB-Frontend" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/LaganYT/LRCLIBPlusPlus" target="_blank" rel="noopener noreferrer">
                 Source Code
               </a>
               <a href="https://github.com/tranxuanthang/lrclib" target="_blank" rel="noopener noreferrer">
@@ -74,7 +74,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; 2024 LRCLIB-Frontend. Licensed under the Unlicense.</p>
+          <p>&copy; 2024 LRCLIBPlusPlus. Licensed under the Unlicense.</p>
         </div>
       </footer>
     </div>

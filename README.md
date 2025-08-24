@@ -1,4 +1,4 @@
-# LRCLIB-frontend
+# LRCLIBPlusPlus
 A TypeScript-based website to publish lyrics to LRCLib.net
 
 ## Features
@@ -15,8 +15,8 @@ A TypeScript-based website to publish lyrics to LRCLib.net
 
 1. Clone the repository:
    ```
-   git clone https://github.com/LaganYT/LRCLIB-frontend.git
-   cd LRCLIB-frontend
+   git clone https://github.com/LaganYT/LRCLIBPlusPlus.git
+   cd LRCLIBPlusPlus
    ```
 
 2. Install dependencies:

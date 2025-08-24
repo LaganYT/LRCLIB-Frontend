@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <div className="home-container">
       <div className="logo">
-        <h1>LRCLIB-Frontend</h1>
+        <h1>LRCLIBPlusPlus</h1>
       </div>
       <div className="search-bar">
         <FaSearch className="icon" />
@@ -57,7 +57,7 @@ export default function Home() {
       <div className="links">
         <a href="https://lrclib.net/">Original Site</a>
         <a href="/publish">Publish Lyrics</a>
-        <a href="https://github.com/LaganYT/LRCLIB-Frontend">Source code</a>
+        <a href="https://github.com/LaganYT/LRCLIBPlusPlus">Source code</a>
         <a href="https://lrclib.net/docs">API Documentation</a>
         <a href="https://lrclib.net/db-dumps">Database Dumps</a>
         <a href="https://github.com/tranxuanthang/lrclib?tab=readme-ov-file#donation">Donation to creator</a>

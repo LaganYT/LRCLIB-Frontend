@@ -37,7 +37,7 @@ export default async function handler(
       baseURL: 'https://lrclib.net',
       httpsAgent,
       headers: {
-        'User-Agent': 'LRCLIB-Frontend/1.0 (+https://github.com/LaganYT/LRCLIB-Frontend)'
+        'User-Agent': 'LRCLIBPlusPlus/1.0 (+https://github.com/LaganYT/LRCLIBPlusPlus)'
       }
     });
 
@@ -124,8 +124,8 @@ export default async function handler(
     const publishResponse = await postWithRetry('/api/publish', payload, {
       headers: {
         'X-Publish-Token': publishToken,
-        'x-user-agent': 'LRCLIB-Frontend v1.0.0 (https://github.com/LaganYT/LRCLIB-Frontend)',
-        'User-Agent': 'LRCLIB-Frontend/1.0 (+https://github.com/LaganYT/LRCLIB-Frontend)',
+        'x-user-agent': 'LRCLIBPlusPlus v1.0.0 (https://github.com/LaganYT/LRCLIBPlusPlus)',
+        'User-Agent': 'LRCLIBPlusPlus/1.0 (+https://github.com/LaganYT/LRCLIBPlusPlus)',
         'Content-Type': 'application/json',
       },
     });
