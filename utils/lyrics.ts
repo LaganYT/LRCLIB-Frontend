@@ -42,7 +42,7 @@ export function extractSongInfoFromUrl(url: string): { song?: string; artist?: s
  * Validates if a string contains valid lyrics content
  */
 export function isValidLyrics(lyrics: string): boolean {
-  return lyrics && lyrics.trim().length > 0 && lyrics !== "Lyrics not found.";
+  return Boolean(lyrics && lyrics.trim().length > 0 && lyrics !== "Lyrics not found.");
 }
 
 /**
