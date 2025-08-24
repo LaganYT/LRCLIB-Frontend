@@ -4,7 +4,7 @@ A TypeScript-based website to publish lyrics to LRCLib.net
 ## Features
 - Search for lyrics dynamically using `/search/{query}`.
 - View plain and synced lyrics in a modern modal interface.
-- **Find lyrics from multiple platforms** (Genius, Lyrics.com, Musixmatch, AZLyrics) without requiring API keys.
+- **Find lyrics from multiple platforms** (Genius, Lyrics.com, Musixmatch, AZLyrics, Lyrics.ovh) without requiring API keys.
 - Input synced lyrics.
 - Upload audio client-side (required).
 - Sync lyrics line by line with the uploaded audio.
@@ -57,7 +57,7 @@ npm run type-check
 1. **Navigate to `/find-lyrics`** or click "Find Lyrics" from the home page.
 2. Enter the song name and artist name in the search fields.
 3. The system will first search the LRCLib database for existing lyrics.
-4. If no results are found locally, it will automatically search external platforms (Genius, Lyrics.com, Musixmatch, AZLyrics).
+4. If no results are found locally, it will automatically search external platforms (Genius, Lyrics.com, Musixmatch, AZLyrics, Lyrics.ovh).
 5. View lyrics from different platforms, copy them to clipboard, or use them directly.
 6. No API keys required - the service fetches lyrics directly from the platforms.
 

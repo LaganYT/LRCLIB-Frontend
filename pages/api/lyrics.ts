@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
+import { getLyrics } from '@southctrl/musixmatch-lyrics';
 
 interface LyricsResult {
   platform: string;
@@ -40,13 +41,14 @@ export default async function handler(
       fetchGeniusLyrics(song, artist),
       fetchLyricsCom(song, artist),
       fetchMusixmatch(song, artist),
-      fetchAZLyrics(song, artist)
+      fetchAZLyrics(song, artist),
+      fetchLyricsOvh(song, artist)
     ];
 
     const responses = await Promise.allSettled(promises);
     
     responses.forEach((response, index) => {
-      const platforms = ['Genius', 'Lyrics.com', 'Musixmatch', 'AZLyrics'];
+      const platforms = ['Genius', 'Lyrics.com', 'Musixmatch', 'AZLyrics', 'Lyrics.ovh'];
       if (response.status === 'fulfilled' && response.value) {
         results.push(response.value);
       } else {
@@ -83,9 +85,19 @@ async function fetchGeniusLyrics(song: string, artist: string): Promise<LyricsRe
     
     const searchResponse = await axios.get(searchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0'
       },
-      timeout: 10000
+      timeout: 15000
     });
 
     const hits = searchResponse.data?.response?.hits || [];
@@ -102,9 +114,19 @@ async function fetchGeniusLyrics(song: string, artist: string): Promise<LyricsRe
     // Fetch the song page
     const pageResponse = await axios.get(songUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0'
       },
-      timeout: 10000
+      timeout: 15000
     });
 
     const html = pageResponse.data;
@@ -154,9 +176,19 @@ async function fetchLyricsCom(song: string, artist: string): Promise<LyricsResul
     
     const response = await axios.get(searchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0'
       },
-      timeout: 10000
+      timeout: 15000
     });
 
     const html = response.data;
@@ -193,40 +225,15 @@ async function fetchLyricsCom(song: string, artist: string): Promise<LyricsResul
 
 async function fetchMusixmatch(song: string, artist: string): Promise<LyricsResult | null> {
   try {
-    const searchQuery = `${song} ${artist}`.replace(/\s+/g, '%20');
-    const searchUrl = `https://www.musixmatch.com/search/${searchQuery}`;
+    // Use the @southctrl/musixmatch-lyrics package
+    const lyrics = await getLyrics(song, artist);
     
-    const response = await axios.get(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      },
-      timeout: 10000
-    });
-
-    const html = response.data;
-    
-    // Extract lyrics from musixmatch
-    const lyricsPattern = /<span[^>]*class="[^"]*lyrics__content__[^"]*"[^>]*>([\s\S]*?)<\/span>/gi;
-    const matches = html.match(lyricsPattern);
-    
-    if (matches && matches.length > 0) {
-      const lyrics = matches
-        .map((match: string) => match.replace(/<[^>]*>/g, ''))
-        .join('\n')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .trim();
-
-      if (lyrics.length > 100) {
-        return {
-          platform: 'Musixmatch',
-          lyrics: lyrics,
-          url: searchUrl
-        };
-      }
+    if (lyrics && lyrics.length > 100) {
+      return {
+        platform: 'Musixmatch',
+        lyrics: lyrics,
+        url: `https://www.musixmatch.com/search/${encodeURIComponent(song)}%20${encodeURIComponent(artist)}`
+      };
     }
 
     return null;
@@ -243,9 +250,19 @@ async function fetchAZLyrics(song: string, artist: string): Promise<LyricsResult
     
     const response = await axios.get(searchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0'
       },
-      timeout: 10000
+      timeout: 15000
     });
 
     const html = response.data;
@@ -276,6 +293,51 @@ async function fetchAZLyrics(song: string, artist: string): Promise<LyricsResult
     return null;
   } catch (error) {
     console.error('AZLyrics fetch error:', error);
+    return null;
+  }
+}
+
+async function fetchLyricsOvh(song: string, artist: string): Promise<LyricsResult | null> {
+  try {
+    // Clean and encode the search parameters
+    const cleanSong = song.trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+    const cleanArtist = artist.trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+    
+    // lyrics.ovh uses a simple API endpoint
+    const searchUrl = `https://lyrics.ovh/search/${encodeURIComponent(cleanArtist)}/${encodeURIComponent(cleanSong)}`;
+    
+    const response = await axios.get(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Cache-Control': 'no-cache'
+      },
+      timeout: 15000
+    });
+
+    // lyrics.ovh returns JSON with lyrics in the 'lyrics' field
+    if (response.data && response.data.lyrics) {
+      const lyrics = response.data.lyrics
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '')
+        .trim();
+
+      if (lyrics.length > 100 && lyrics !== 'Sorry, we don\'t have lyrics for this song yet.') {
+        return {
+          platform: 'Lyrics.ovh',
+          lyrics: lyrics,
+          url: searchUrl
+        };
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Lyrics.ovh fetch error:', error);
     return null;
   }
 }
