@@ -55,7 +55,7 @@ export default async function handler(
 
     let lyrics = '';
     let syncedLyrics = '';
-    let songInfo = {};
+    let songInfo: { title?: string; artist?: string } = {};
 
     // Process regular lyrics result
     if (regularResult.status === 'fulfilled' && regularResult.value.success && regularResult.value.lyrics) {
