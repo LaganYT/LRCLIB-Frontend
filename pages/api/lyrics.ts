@@ -89,7 +89,7 @@ async function fetchGeniusLyrics(song: string, artist: string): Promise<LyricsRe
     });
 
     const hits = searchResponse.data?.response?.hits || [];
-    const songHit = hits.find((hit: any) => 
+    const songHit = hits.find((hit: { type: string; result?: { url: string } }) => 
       hit.type === 'song' && 
       hit.result && 
       hit.result.url
@@ -211,7 +211,7 @@ async function fetchMusixmatch(song: string, artist: string): Promise<LyricsResu
     
     if (matches && matches.length > 0) {
       const lyrics = matches
-        .map(match => match.replace(/<[^>]*>/g, ''))
+        .map((match: string) => match.replace(/<[^>]*>/g, ''))
         .join('\n')
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
