@@ -16,7 +16,13 @@ export default function SearchResults() {
   const [songLoading, setSongLoading] = useState<boolean>(false);
   const [selectedSong, setSelectedSong] = useState<LRCLibSong | null>(null);
   const [activeTab, setActiveTab] = useState<'synced' | 'plain'>('synced');
-  const [searchQuery, setSearchQuery] = useState<string>(query as string || '');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  useEffect(() => {
+    if (query && typeof query === 'string') {
+      setSearchQuery(query);
+    }
+  }, [query]);
 
   useEffect(() => {
     if (searchQuery) {
