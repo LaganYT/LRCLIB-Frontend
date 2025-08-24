@@ -1,15 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { LyricsClient } from '@mjba/lyrics';
+import { lyricsClient, LyricsResponse, SongInfo } from '@mjba/lyrics';
 import { convertToLRCFormat, extractSongInfoFromUrl } from '../../utils/lyrics';
 
 interface ExtractResponse {
   success: boolean;
   lyrics?: string;
   syncedLyrics?: string;
-  songInfo?: {
-    title?: string;
-    artist?: string;
-  };
+  songInfo?: SongInfo;
   error?: string;
 }
 
@@ -64,46 +61,36 @@ export default async function handler(
 
 /**
  * Fetches lyrics from Musixmatch using the extracted song and artist information
+ * Following the package documentation patterns
  */
 async function fetchLyricsFromMusixmatch(song: string, artist: string): Promise<{
   lyrics: string;
   syncedLyrics: string;
-  songInfo: { title?: string; artist?: string };
+  songInfo: SongInfo | undefined;
 }> {
-  const client = new LyricsClient();
   const searchQuery = `${song} ${artist}`;
-
-  // Fetch both regular and synced lyrics in parallel
-  const [regularResult, syncedResult] = await Promise.allSettled([
-    client.searchAndGetLyrics(searchQuery),
-    client.searchAndGetSyncedLyrics(searchQuery)
-  ]);
-
+  
+  // Use the default lyricsClient instance as recommended in docs
+  const result: LyricsResponse = await lyricsClient.searchAndGetSyncedLyrics(searchQuery);
+  
   let lyrics = '';
   let syncedLyrics = '';
-  let songInfo: { title?: string; artist?: string } = {};
+  let songInfo: SongInfo | undefined;
 
-  // Process regular lyrics result
-  if (regularResult.status === 'fulfilled' && regularResult.value.success && regularResult.value.lyrics) {
-    lyrics = regularResult.value.lyrics;
-    songInfo = {
-      title: regularResult.value.songInfo?.title,
-      artist: regularResult.value.songInfo?.artist
-    };
-  }
-
-  // Process synced lyrics result
-  if (syncedResult.status === 'fulfilled' && syncedResult.value.success) {
-    if (syncedResult.value.hasTimestamps && syncedResult.value.syncedLyrics) {
-      syncedLyrics = convertToLRCFormat(syncedResult.value.syncedLyrics);
+  if (result.success) {
+    // Get song info
+    if (result.songInfo) {
+      songInfo = result.songInfo;
     }
-    
-    // Update song info if not already set
-    if (!songInfo.title) {
-      songInfo = {
-        title: syncedResult.value.songInfo?.title,
-        artist: syncedResult.value.songInfo?.artist
-      };
+
+    // Handle synced lyrics with timestamps
+    if (result.hasTimestamps && result.syncedLyrics) {
+      syncedLyrics = convertToLRCFormat(result.syncedLyrics);
+      // Also set regular lyrics from synced lyrics for compatibility
+      lyrics = result.syncedLyrics.map(lyric => lyric.text).join('\n');
+    } else if (result.lyrics) {
+      // Fallback to regular lyrics if no synced lyrics available
+      lyrics = result.lyrics;
     }
   }
 

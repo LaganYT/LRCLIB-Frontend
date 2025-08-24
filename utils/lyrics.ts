@@ -1,10 +1,10 @@
+import type { SyncedLyric } from '@mjba/lyrics';
+
 /**
  * Converts synced lyrics array to LRC format
+ * Uses the package's SyncedLyric type for better type safety
  */
-export function convertToLRCFormat(syncedLyrics: Array<{ 
-  time: { minutes: number; seconds: number; ms: number }; 
-  text: string 
-}>): string {
+export function convertToLRCFormat(syncedLyrics: SyncedLyric[]): string {
   return syncedLyrics
     .map(lyric => {
       const timestamp = `[${lyric.time.minutes.toString().padStart(2, '0')}:${lyric.time.seconds.toString().padStart(2, '0')}.${lyric.time.ms.toString().padStart(3, '0')}]`;
@@ -50,4 +50,12 @@ export function isValidLyrics(lyrics: string): boolean {
  */
 export function formatTimestamp(minutes: number, seconds: number, ms: number): string {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+}
+
+/**
+ * Formats synced lyrics for display with total time
+ */
+export function formatSyncedLyricForDisplay(lyric: SyncedLyric): string {
+  const timestamp = formatTimestamp(lyric.time.minutes, lyric.time.seconds, lyric.time.ms);
+  return `[${timestamp}] ${lyric.text}`;
 }

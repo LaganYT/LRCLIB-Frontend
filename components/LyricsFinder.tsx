@@ -3,11 +3,12 @@ import { FaMusic, FaExternalLinkAlt, FaCopy, FaCheck, FaTimes, FaLink, FaArrowRi
 import { useRouter } from 'next/router';
 import Loading from './Loading';
 import { LyricsResult } from '../types';
+import type { SongInfo } from '@mjba/lyrics';
 
 interface EnhancedLyricsFinderProps {
   songName: string;
   artistName: string;
-  onLyricsAccepted?: (lyrics: string, syncedLyrics?: string, songInfo?: { title?: string; artist?: string }) => void;
+  onLyricsAccepted?: (lyrics: string, syncedLyrics?: string, songInfo?: SongInfo) => void;
 }
 
 export default function EnhancedLyricsFinder({ songName, artistName, onLyricsAccepted }: EnhancedLyricsFinderProps) {
