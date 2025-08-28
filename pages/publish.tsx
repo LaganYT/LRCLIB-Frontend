@@ -751,21 +751,17 @@ export default function Publish() {
             <p>Compare and choose which lyrics to publish.</p>
             <div className="compare-grid">
               <div className="compare-col">
-                <h3>Your Plain</h3>
-                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{plainLyrics || '— None —'}</pre>
-                <h3>Your Synced</h3>
-                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{generatedLrcBody || '— None —'}</pre>
+                <h3>{(generatedLrcBody && generatedLrcBody.trim() !== '') ? 'Your Synced' : 'Your Plain'}</h3>
+                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{(generatedLrcBody && generatedLrcBody.trim() !== '') ? generatedLrcBody : (plainLyrics || '— None —')}</pre>
               </div>
               <div className="compare-col">
-                <h3>Existing Plain</h3>
-                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{existingSong.plainLyrics || '— None —'}</pre>
-                <h3>Existing Synced</h3>
-                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{existingSong.syncedLyrics || '— None —'}</pre>
+                <h3>{(existingSong.syncedLyrics && existingSong.syncedLyrics.trim() !== '') ? 'Existing Synced' : 'Existing Plain'}</h3>
+                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{(existingSong.syncedLyrics && existingSong.syncedLyrics.trim() !== '') ? existingSong.syncedLyrics : (existingSong.plainLyrics || '— None —')}</pre>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '12px' }}>
-              <button className="button" onClick={async () => { setCompareOpen(false); await publishLyrics({ plain: plainLyrics, synced: generatedLrcBody }); }}>Use My Lyrics</button>
-              <button className="button" onClick={async () => { setCompareOpen(false); await publishLyrics({ plain: existingSong.plainLyrics || '', synced: existingSong.syncedLyrics || '' }); }}>Use Existing</button>
+              <button className="button" onClick={async () => { setCompareOpen(false); await publishLyrics({ plain: (generatedLrcBody && generatedLrcBody.trim() !== '') ? '' : plainLyrics, synced: generatedLrcBody }); }}>Use My Lyrics</button>
+              <button className="button" onClick={async () => { setCompareOpen(false); await publishLyrics({ plain: (existingSong.syncedLyrics && existingSong.syncedLyrics.trim() !== '') ? '' : (existingSong.plainLyrics || ''), synced: existingSong.syncedLyrics || '' }); }}>Use Existing</button>
               <button className="button" onClick={() => { setCompareOpen(false); setExistingSong(null); }}>Cancel</button>
             </div>
             <style jsx>{`
