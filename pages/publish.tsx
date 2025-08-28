@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import { SpotifyTrack, SpotifySearchResponse, SelectedSong } from '../types';
+import { SpotifyTrack, SpotifySearchResponse, SelectedSong, LRCLibSong, LRCLibSearchResult } from '../types';
 import Loading from '../components/Loading';
 
 const CLIENT_ID = '28a7d1b1ca074829b305916a96032709';
@@ -42,6 +42,9 @@ export default function Publish() {
   const [success, setSuccess] = useState<string>('');
   const [accessToken, setAccessToken] = useState<string>('');
   const [publishingStep, setPublishingStep] = useState<string>('');
+  const [compareOpen, setCompareOpen] = useState<boolean>(false);
+  const [existingSong, setExistingSong] = useState<LRCLibSong | null>(null);
+  const [compareLoading, setCompareLoading] = useState<boolean>(false);
 
   const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>): void => setSearchQuery(e.target.value);
 
@@ -468,7 +471,7 @@ export default function Publish() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [captureTimestampForCurrentLine, undoLastTimestamp, bumpCurrentLineTimestamp, currentLineIndex, currentTimeMs, lyricLines.length]);
 
-  const publishLyrics = async (): Promise<void> => {
+  const publishLyrics = async (overrides?: { plain?: string; synced?: string }): Promise<void> => {
     const apiEndpoint = '/api/publish';
     const duration = audioDurationSec ?? selectedSong?.duration ?? 0;
     if (!duration) {
@@ -487,9 +490,10 @@ export default function Publish() {
       albumName: selectedSong.albumName,
       duration,
     };
-    if (plainLyrics.trim()) payload.plainLyrics = plainLyrics.trim();
-    const lrcBodyOnly = generatedLrcBody;
-    if (lrcBodyOnly) payload.syncedLyrics = lrcBodyOnly;
+    const chosenPlain = overrides?.plain ?? plainLyrics;
+    const chosenSynced = overrides?.synced ?? generatedLrcBody;
+    if (chosenPlain && chosenPlain.trim() !== '') payload.plainLyrics = chosenPlain.trim();
+    if (chosenSynced && chosenSynced.trim() !== '') payload.syncedLyrics = chosenSynced.trim();
 
     try {
       setPublishLoading(true);
@@ -525,6 +529,31 @@ export default function Publish() {
     }
     setError('');
     setSuccess('');
+    // Pre-publish check for existing entry in LRCLIB
+    if (!selectedSong) {
+      await publishLyrics();
+      return;
+    }
+    setCompareLoading(true);
+    try {
+      const query = `${selectedSong.trackName} ${selectedSong.artistName}`;
+      const searchResp = await axios.get<LRCLibSearchResult[]>(`https://lrclib.net/api/search?q=${encodeURIComponent(query)}`);
+      const results = searchResp.data || [];
+      const match = results.find((r) =>
+        r.name?.toLowerCase() === selectedSong.trackName.toLowerCase() &&
+        r.artistName?.toLowerCase() === selectedSong.artistName.toLowerCase()
+      ) || results[0];
+      if (match) {
+        const detailResp = await axios.get<LRCLibSong>(`https://lrclib.net/api/get/${match.id}`);
+        setExistingSong(detailResp.data);
+        setCompareOpen(true);
+        return;
+      }
+    } catch (e) {
+      // If check fails, proceed with publish
+    } finally {
+      setCompareLoading(false);
+    }
     await publishLyrics();
   };
 
@@ -712,6 +741,43 @@ export default function Publish() {
           text={publishingStep || 'Publishing lyrics to LRCLib...'} 
           showProgress={true}
         />
+      )}
+
+      {compareOpen && existingSong && (
+        <div className="modal">
+          <div className="modal-content" style={{ maxWidth: '900px' }}>
+            <span className="close-button" onClick={() => { setCompareOpen(false); setExistingSong(null); }}>&times;</span>
+            <h2>Song already exists on LRCLIB</h2>
+            <p>Compare and choose which lyrics to publish.</p>
+            <div className="compare-grid">
+              <div className="compare-col">
+                <h3>Your Plain</h3>
+                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{plainLyrics || '— None —'}</pre>
+                <h3>Your Synced</h3>
+                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{generatedLrcBody || '— None —'}</pre>
+              </div>
+              <div className="compare-col">
+                <h3>Existing Plain</h3>
+                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{existingSong.plainLyrics || '— None —'}</pre>
+                <h3>Existing Synced</h3>
+                <pre className="lyrics" style={{ whiteSpace: 'pre-wrap' }}>{existingSong.syncedLyrics || '— None —'}</pre>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '12px' }}>
+              <button className="button" onClick={async () => { setCompareOpen(false); await publishLyrics({ plain: plainLyrics, synced: generatedLrcBody }); }}>Use My Lyrics</button>
+              <button className="button" onClick={async () => { setCompareOpen(false); await publishLyrics({ plain: existingSong.plainLyrics || '', synced: existingSong.syncedLyrics || '' }); }}>Use Existing</button>
+              <button className="button" onClick={() => { setCompareOpen(false); setExistingSong(null); }}>Cancel</button>
+            </div>
+            <style jsx>{`
+              .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+              @media (max-width: 900px) { .compare-grid { grid-template-columns: 1fr; } }
+            `}</style>
+          </div>
+        </div>
+      )}
+
+      {compareLoading && (
+        <Loading type="overlay" text="Checking LRCLIB for existing song..." showProgress={true} />
       )}
     </div>
   );
