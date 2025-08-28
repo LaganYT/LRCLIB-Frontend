@@ -45,8 +45,7 @@ export default function Loading({
     <div className="loading-overlay">
       <div className="loading-content">
         <h3>{text || 'Loading...'}</h3>
-        <div className="loading-spinner large" />
-        {showProgress && renderProgress()}
+        {renderProgress()}
       </div>
     </div>
   );
