@@ -41,6 +41,7 @@ export default function Publish() {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [accessToken, setAccessToken] = useState<string>('');
+  const [publishingStep, setPublishingStep] = useState<string>('');
 
   const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>): void => setSearchQuery(e.target.value);
 
@@ -479,6 +480,7 @@ export default function Publish() {
       return;
     }
 
+    setPublishingStep('Preparing payload');
     const payload: Record<string, any> = {
       trackName: selectedSong.trackName,
       artistName: selectedSong.artistName,
@@ -492,15 +494,19 @@ export default function Publish() {
     try {
       setPublishLoading(true);
       setError('');
+      setPublishingStep('Sending request to LRCLib API');
       const response = await axios.post(apiEndpoint, payload, {
         headers: { 'Content-Type': 'application/json' },
       });
+      setPublishingStep('Processing response');
       if (response.status === 201) {
+        setPublishingStep('Completed successfully');
         setSuccess('Lyrics published successfully!');
       } else {
         throw new Error('Unexpected response status.');
       }
     } catch (err: any) {
+      setPublishingStep('Failed');
       if (err.response) {
         setError(err.response.data?.message || 'An error occurred.');
       } else {
@@ -508,6 +514,7 @@ export default function Publish() {
       }
     } finally {
       setPublishLoading(false);
+      setTimeout(() => setPublishingStep(''), 500);
     }
   };
 
@@ -661,7 +668,7 @@ export default function Publish() {
       {publishLoading && (
         <Loading 
           type="overlay" 
-          text="Publishing lyrics to LRCLib..." 
+          text={publishingStep || 'Publishing lyrics to LRCLib...'} 
           showProgress={true}
         />
       )}
