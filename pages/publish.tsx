@@ -537,6 +537,7 @@ export default function Publish() {
           type="text"
           value={searchQuery}
           onChange={handleSearchQueryChange}
+          onKeyDown={(e) => { if (e.key === 'Enter') searchSpotify(); }}
           placeholder="Search for a song"
           className="input"
         />
@@ -585,6 +586,8 @@ export default function Publish() {
             );
           })}
           <style jsx>{`
+            .search-bar { width: 100%; display: flex; gap: 10px; }
+            .search-bar .input { flex: 1; }
             .spotify-results { margin-top: 12px; }
             .spotify-row { display: grid; grid-template-columns: 40px 1fr 300px; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
             .spotify-row.header { font-weight: 600; opacity: 0.8; cursor: default; }
