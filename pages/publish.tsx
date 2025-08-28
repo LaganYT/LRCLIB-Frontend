@@ -423,7 +423,7 @@ export default function Publish() {
       .filter((l) => l.text.length > 0)
       .map((l) => {
         const ts = formatMs(l.timeMs ?? 0);
-        return `[${ts}]${l.text}`;
+        return `[${ts}] ${l.text}`;
       });
 
     return [...header, ...body].join('\n');
@@ -435,7 +435,7 @@ export default function Publish() {
       .filter((l) => l.text.length > 0 && l.timeMs != null)
       .slice()
       .sort((a, b) => (a.timeMs as number) - (b.timeMs as number));
-    return sorted.map((l) => `[${formatMs(l.timeMs)}]${l.text}`).join('\n').trim();
+    return sorted.map((l) => `[${formatMs(l.timeMs)}] ${l.text}`).join('\n').trim();
   }, [lyricLines]);
 
   useEffect(() => {
