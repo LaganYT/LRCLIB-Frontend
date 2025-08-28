@@ -124,13 +124,9 @@ export default function Publish() {
   };
 
   useEffect(() => {
-    const lines = plainLyrics
-      .split(/\r?\n/)
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
+    const lines = plainLyrics.split(/\r?\n/);
     setLyricLines((prev) => {
       const next: LyricLine[] = lines.map((text, i) => ({ text, timeMs: prev[i]?.timeMs }));
-      // If lines removed, drop extra timestamps; if added, timestamps default undefined
       return next;
     });
     setCurrentLineIndex(0);
@@ -345,10 +341,8 @@ export default function Publish() {
     let headerLengthMs: number | undefined;
 
     for (const raw of lines) {
-      const line = raw.trim();
-      if (line.length === 0) continue;
-
-      const headerMatch = line.match(/^\[(ti|ar|al|length)\s*:(.*)]$/i);
+      const trimmed = raw.trim();
+      const headerMatch = trimmed.match(/^\[(ti|ar|al|length)\s*:(.*)]$/i);
       if (headerMatch) {
         const tag = headerMatch[1].toLowerCase();
         const value = headerMatch[2].trim();
@@ -367,15 +361,15 @@ export default function Publish() {
       let timestamps: number[] = [];
       let lastIdx = 0;
       let m: RegExpExecArray | null;
-      while ((m = tsRegex.exec(line)) !== null) {
+      while ((m = tsRegex.exec(raw)) !== null) {
         const ms = parseLrcToMs(m[1]);
         if (ms != null) timestamps.push(ms);
         lastIdx = tsRegex.lastIndex;
       }
-      const text = line.slice(lastIdx).trim();
+      const text = raw.slice(lastIdx);
       if (timestamps.length === 0) {
-        // No timestamp on this line; treat as plain lyric without time
-        if (text.length > 0) imported.push({ text });
+        // No timestamp on this line; keep the line as-is (even if blank)
+        imported.push({ text });
       } else {
         for (const t of timestamps) {
           imported.push({ text, timeMs: t });
@@ -420,7 +414,7 @@ export default function Publish() {
     }
 
     const body = lyricLines
-      .filter((l) => l.text.length > 0)
+      // keep even empty or space-only lines
       .map((l) => {
         const ts = formatMs(l.timeMs ?? 0);
         return `[${ts}] ${l.text}`;
@@ -432,10 +426,10 @@ export default function Publish() {
   // LRC body for publishing: only include lines that actually have a timestamp
   const generatedLrcBody = useMemo(() => {
     const sorted = lyricLines
-      .filter((l) => l.text.length > 0 && l.timeMs != null)
+      .filter((l) => l.timeMs != null)
       .slice()
       .sort((a, b) => (a.timeMs as number) - (b.timeMs as number));
-    return sorted.map((l) => `[${formatMs(l.timeMs)}] ${l.text}`).join('\n').trim();
+    return sorted.map((l) => `[${formatMs(l.timeMs)}] ${l.text}`).join('\n');
   }, [lyricLines]);
 
   useEffect(() => {
