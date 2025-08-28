@@ -417,7 +417,8 @@ export default function Publish() {
       // keep even empty or space-only lines
       .map((l) => {
         const ts = formatMs(l.timeMs ?? 0);
-        return `[${ts}] ${l.text}`;
+        const spacer = l.text.startsWith(' ') ? '' : ' ';
+        return `[${ts}]${spacer}${l.text}`;
       });
 
     return [...header, ...body].join('\n');
@@ -429,7 +430,12 @@ export default function Publish() {
       .filter((l) => l.timeMs != null)
       .slice()
       .sort((a, b) => (a.timeMs as number) - (b.timeMs as number));
-    return sorted.map((l) => `[${formatMs(l.timeMs)}] ${l.text}`).join('\n');
+    return sorted
+      .map((l) => {
+        const spacer = l.text.startsWith(' ') ? '' : ' ';
+        return `[${formatMs(l.timeMs)}]${spacer}${l.text}`;
+      })
+      .join('\n');
   }, [lyricLines]);
 
   useEffect(() => {
