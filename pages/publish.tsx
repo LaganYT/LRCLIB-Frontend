@@ -532,7 +532,7 @@ export default function Publish() {
           className={`button ${searchLoading ? 'loading' : ''}`}
           disabled={searchLoading || !searchQuery.trim()}
         >
-          {searchLoading ? <Loading type="dots" size="small" /> : 'Search'}
+          {searchLoading ? 'Searching...' : 'Search'}
         </button>
       </div>
 
@@ -647,7 +647,7 @@ export default function Publish() {
         className={`button ${publishLoading ? 'loading' : ''}`}
         disabled={publishLoading || !plainLyrics.trim()}
       >
-        {publishLoading ? <Loading type="dots" size="small" /> : 'Publish'}
+        {publishLoading ? 'Publishing...' : 'Publish'}
       </button>
       {error && <p className="error">{error}</p>}
       {success && <p className="success">{success}</p>}
