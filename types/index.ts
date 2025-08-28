@@ -7,6 +7,7 @@ export interface SpotifyArtist {
 export interface SpotifyAlbum {
   name: string;
   id: string;
+  images?: { url: string; height: number; width: number }[];
 }
 
 export interface SpotifyTrack {
@@ -15,6 +16,7 @@ export interface SpotifyTrack {
   artists: SpotifyArtist[];
   album: SpotifyAlbum;
   duration_ms: number;
+  explicit?: boolean;
 }
 
 export interface SpotifySearchResponse {

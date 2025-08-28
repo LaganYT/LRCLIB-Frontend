@@ -558,13 +558,51 @@ export default function Publish() {
       )}
       
       {!searchLoading && searchResults.length > 0 && (
-        <ul className="search-results">
-          {searchResults.map((song) => (
-            <li key={song.id} onClick={() => selectSong(song)}>
-              {song.name} - {song.artists.map((artist) => artist.name).join(', ')}
-            </li>
-          ))}
-        </ul>
+        <div className="spotify-results">
+          <div className="spotify-row header">
+            <div className="col index">#</div>
+            <div className="col title">Title</div>
+            <div className="col album">Album</div>
+          </div>
+          {searchResults.map((song, idx) => {
+            const img = song.album.images && song.album.images.length > 0 ? song.album.images[song.album.images.length - 1].url : undefined;
+            const artists = song.artists.map((a) => a.name).join(', ');
+            return (
+              <div key={song.id} className="spotify-row item" onClick={() => selectSong(song)}>
+                <div className="col index">{idx + 1}</div>
+                <div className="col title">
+                  <img src={img} alt="cover" className="cover" />
+                  <div className="meta">
+                    <div className="track">
+                      {song.name}
+                      {song.explicit ? <span className="explicit">E</span> : null}
+                    </div>
+                    <div className="artists">{artists}</div>
+                  </div>
+                </div>
+                <div className="col album">{song.album.name}</div>
+              </div>
+            );
+          })}
+          <style jsx>{`
+            .spotify-results { margin-top: 12px; }
+            .spotify-row { display: grid; grid-template-columns: 40px 1fr 300px; align-items: center; padding: 10px 8px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+            .spotify-row.header { font-weight: 600; opacity: 0.8; cursor: default; }
+            .spotify-row.item:hover { background: rgba(255,255,255,0.04); }
+            .col.index { text-align: right; padding-right: 8px; color: var(--text-color); opacity: 0.8; }
+            .col.title { display: flex; align-items: center; gap: 12px; }
+            .cover { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #222; }
+            .meta { display: flex; flex-direction: column; }
+            .track { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+            .explicit { display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border: 1px solid var(--border-color); border-radius: 2px; width: 16px; height: 16px; }
+            .artists { font-size: 0.9rem; opacity: 0.8; }
+            .col.album { color: var(--text-color); opacity: 0.9; }
+            @media (max-width: 768px) {
+              .spotify-row { grid-template-columns: 30px 1fr; }
+              .col.album { display: none; }
+            }
+          `}</style>
+        </div>
       )}
 
       {selectedSong && (
