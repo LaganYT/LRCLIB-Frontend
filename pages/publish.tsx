@@ -770,6 +770,7 @@ export default function Publish() {
             </div>
             <style jsx>{`
               .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+              .lyrics { max-height: 260px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: rgba(255,255,255,0.04); }
               @media (max-width: 900px) { .compare-grid { grid-template-columns: 1fr; } }
             `}</style>
           </div>
